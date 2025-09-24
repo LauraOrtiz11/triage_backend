@@ -1,15 +1,24 @@
+using triage_backend.Repositories;
+using triage_backend.Services;
+using triage_backend.Utilities;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+//  servicios 
+builder.Services.AddScoped<ContextDB>();
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<IUserService, UserService>();
 
+// controladores
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+//  Swagger 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+//  Configuraci?n del pipeline HTTP
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
