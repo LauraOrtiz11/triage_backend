@@ -58,6 +58,43 @@ namespace triage_backend.Repositories
             }
         }
 
+        // Verifica si el usuario tiene procesos activos asociados
+        public bool HasActiveProcesses(int userId)
+        {
+            using SqlConnection conn = (SqlConnection)_context.OpenConnection();
 
+            string query = @"
+                SELECT COUNT(1)
+                FROM TRIAGE T
+                INNER JOIN USUARIO U ON U.ID_Usuario = T.ID_Medico OR U.ID_Usuario = T.ID_Paciente
+                WHERE U.ID_Usuario = @UserId AND T.ID_Estado = 1; -- Activo
+            ";
+
+            using SqlCommand cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@UserId", userId);
+
+            int count = (int)cmd.ExecuteScalar();
+            return count > 0;
+        }
+
+        // Cambiar estado del usuario (0 = Inactivo, 1 = Activo)
+        public bool ChangeUserStatus(int userId, int stateId)
+        {
+            using (SqlConnection conn = (SqlConnection)_context.OpenConnection())
+            {
+                string query = @"UPDATE USUARIO 
+                         SET ID_Estado = @StateId
+                         WHERE ID_Usuario = @UserId";
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@StateId", stateId);
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+
+                    int rowsAffected = cmd.ExecuteNonQuery();
+                    return rowsAffected > 0;
+                }
+            }
+        }
     }
 }

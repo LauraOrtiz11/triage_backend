@@ -25,5 +25,17 @@ namespace triage_backend.Controllers
             var result = _userService.CreateUser(userDto);
             return Ok(result);
         }
+
+
+        /// <summary>
+        /// Cambia el estado de un usuario (habilitar o deshabilitar).
+        /// Si el usuario tiene procesos activos no podrá ser deshabilitado.
+        /// </summary>
+        [HttpPut("ChangeStatus/{userId}")]
+        public IActionResult ChangeStatus(int userId, [FromQuery] int newState)
+        {
+            var result = _userService.ChangeUserStatus(userId, newState);
+            return Ok(result);
+        }
     }
 }
