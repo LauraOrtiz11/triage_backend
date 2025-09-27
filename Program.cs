@@ -13,7 +13,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddControllers();
 
 //  Swagger 
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddEndpointsApiExplorer();0
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
