@@ -4,21 +4,33 @@ using triage_backend.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//  servicios 
+// ------------------- Servicios -------------------
+// Contexto de BD
 builder.Services.AddScoped<ContextDB>();
+
+// User
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 
-// controladores
+// Patient
+builder.Services.AddScoped<PatientRepository>();
+builder.Services.AddScoped<IPatientService, PatientService>();
+
+// ------------------- Controladores -------------------
 builder.Services.AddControllers();
 
+<<<<<<< HEAD
 //  Swagger 
 builder.Services.AddEndpointsApiExplorer();0
+=======
+// ------------------- Swagger -------------------
+builder.Services.AddEndpointsApiExplorer();
+>>>>>>> origin/QA
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-//  Configuraci?n del pipeline HTTP
+// ------------------- Pipeline HTTP -------------------
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -26,7 +38,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
 
 app.MapControllers();
