@@ -37,5 +37,17 @@ namespace triage_backend.Controllers
             var result = _userService.ChangeUserStatus(userId, newState);
             return Ok(result);
         }
+
+        /// <summary>
+        /// Obtiene todos los usuarios o los filtra por cédula/nombre.
+        /// </summary>
+        /// <param name="searchTerm">Texto de búsqueda (cédula o nombre)</param>
+        /// <returns>Lista de usuarios</returns>
+        [HttpGet]
+        public IActionResult GetUsers([FromQuery] string? searchTerm = null)
+        {
+            var users = _userService.GetUsers(searchTerm);
+            return Ok(users);
+        }
     }
 }
