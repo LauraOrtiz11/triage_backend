@@ -36,7 +36,7 @@ namespace triage_backend.Services
             if (userDto.RoleIdUs <= 0)
                 return new { Success = false, Message = "Debe seleccionar un rol válido." };
 
-            if (userDto.StateIdUs <= 0)
+            if (userDto.StateIdUs < 0)
                 return new { Success = false, Message = "Debe seleccionar un estado válido." };
 
             // 1. Validar duplicados 
@@ -87,6 +87,12 @@ namespace triage_backend.Services
             return updated
                 ? new { Success = true, Message = newState == 1 ? "Usuario habilitado correctamente." : "Usuario deshabilitado correctamente." }
                 : new { Success = false, Message = "No se pudo actualizar el estado del usuario." };
+        }
+
+        // Obtener lista de usuarios con filtro opcional por nombre o cedúla
+        public IEnumerable<UserListDto> GetUsers(string? searchTerm = null)
+        {
+            return _userRepository.GetUsers(searchTerm);
         }
     }
 }

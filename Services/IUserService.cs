@@ -8,5 +8,8 @@ namespace triage_backend.Services
 
         object ChangeUserStatus(int userId, int stateId);
 
+        IEnumerable<UserListDto> GetUsers(string? searchTerm = null);
+
     }
 }
+    
