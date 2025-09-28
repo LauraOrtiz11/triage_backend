@@ -4,6 +4,16 @@ using triage_backend.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy => policy
+            .WithOrigins("http://localhost:3000") // URL de tu frontend
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+    );
+});
+
 // ------------------- Servicios -------------------
 // Contexto de BD
 builder.Services.AddScoped<ContextDB>();
@@ -34,6 +44,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+app.UseCors("AllowFrontend");
 
 app.MapControllers();
 
