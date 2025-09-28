@@ -2,6 +2,7 @@
 {
     public class UserDto
     {
+        public int UserId { get; set; }
         public string FirstNameUs { get; set; } = string.Empty;       // Nombre_Us
         public string LastNameUs { get; set; } = string.Empty;        // Apellido_Us
         public string EmailUs { get; set; } = string.Empty;           // Correo_Us
@@ -15,5 +16,6 @@
         public string AddressUs { get; set; } = string.Empty;         // Direccion_Us
         public int RoleIdUs { get; set; }                             // (FK)ID_Rol
         public int StateIdUs { get; set; }                            // (FK)ID_Estado
+
     }
 }
