@@ -23,9 +23,58 @@ namespace triage_backend.Controllers
         public IActionResult CreateUser([FromBody] UserDto userDto)
         {
             var result = _userService.CreateUser(userDto);
-            return Ok(result);
+            dynamic r = result;
+
+            if (!r.Success)
+                return BadRequest(new { message = r.Message });
+
+            return Ok(new { message = r.Message, userId = r.UserId });
         }
 
+        /// <summary>
+        /// Obtiene todos los usuarios o los filtra por cédula/nombre.
+        /// </summary>
+        [HttpGet]
+        public IActionResult GetUsers([FromQuery] string? searchTerm = null)
+        {
+            var users = _userService.GetUsers(searchTerm);
+
+            if (users == null || !users.Any())
+                return NotFound(new { message = "No se encontraron usuarios." });
+
+            return Ok(new { message = "Usuarios obtenidos correctamente.", data = users });
+        }
+
+        /// <summary>
+        /// Obtiene la información de un usuario por ID (para edición).
+        /// </summary>
+        [HttpGet("GetUserById/{id}")]
+        public IActionResult GetUserById(int id)
+        {
+            var user = _userService.GetUserById(id);
+
+            if (user == null)
+                return NotFound(new { message = "Usuario no encontrado." });
+
+            return Ok(new { message = "Usuario obtenido correctamente.", data = user });
+        }
+
+        /// <summary>
+        /// Actualiza los datos de un usuario existente.
+        /// </summary>
+        [HttpPut("UpdateUser/{id}")]
+        public IActionResult UpdateUser(int id, [FromBody] UserDto user)
+        {
+            if (user == null || id != user.UserId)
+                return BadRequest(new { message = "Los datos del usuario no son válidos." });
+
+            var result = _userService.UpdateUser(user);
+
+            if (!result.Success)
+                return Conflict(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
+        }
 
         /// <summary>
         /// Cambia el estado de un usuario (habilitar o deshabilitar).
@@ -35,19 +84,11 @@ namespace triage_backend.Controllers
         public IActionResult ChangeStatus(int userId, [FromQuery] int newState)
         {
             var result = _userService.ChangeUserStatus(userId, newState);
-            return Ok(result);
-        }
 
-        /// <summary>
-        /// Obtiene todos los usuarios o los filtra por cédula/nombre.
-        /// </summary>
-        /// <param name="searchTerm">Texto de búsqueda (cédula o nombre)</param>
-        /// <returns>Lista de usuarios</returns>
-        [HttpGet]
-        public IActionResult GetUsers([FromQuery] string? searchTerm = null)
-        {
-            var users = _userService.GetUsers(searchTerm);
-            return Ok(users);
+            if (!result.Success)
+                return BadRequest(new { message = result.Message });
+
+            return Ok(new { message = result.Message });
         }
     }
 }

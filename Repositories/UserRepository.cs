@@ -8,6 +8,61 @@ namespace triage_backend.Repositories
     {
         private readonly ContextDB _context = context;
 
+
+        // CREAR USUARIO 
+        public int CreateUser(UserDto user, string passwordHash)
+        {
+            using (SqlConnection conn = (SqlConnection)_context.OpenConnection())
+            {
+                string query = @"
+                    INSERT INTO USUARIO 
+                    (Nombre_Us, Apellido_Us, Correo_Us, Contrasena_Us, Telefono_Us, Cedula_Us, 
+                     Fecha_Nac_Us, Sexo_Us, Contacto_Emer, Direccion_Us, ID_Rol, ID_Estado)
+                    VALUES 
+                    (@FirstName, @LastName, @Email, @Password, @Phone, @Identification, 
+                     @BirthDate, @Gender, @EmergencyContact, @Address, @RoleId, @StateId);
+                    SELECT SCOPE_IDENTITY();";
+
+                using (SqlCommand cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@FirstName", user.FirstNameUs);
+                    cmd.Parameters.AddWithValue("@LastName", user.LastNameUs);
+                    cmd.Parameters.AddWithValue("@Email", user.EmailUs);
+                    cmd.Parameters.AddWithValue("@Password", passwordHash);
+                    cmd.Parameters.AddWithValue("@Phone", string.IsNullOrEmpty(user.PhoneUs) ? (object)DBNull.Value : user.PhoneUs);
+                    cmd.Parameters.AddWithValue("@Identification", user.IdentificationUs);
+                    cmd.Parameters.AddWithValue("@BirthDate", user.BirthDateUs == default ? (object)DBNull.Value : user.BirthDateUs);
+                    cmd.Parameters.AddWithValue("@Gender", user.GenderUs);
+                    cmd.Parameters.AddWithValue("@EmergencyContact", string.IsNullOrEmpty(user.EmergencyContactUs) ? (object)DBNull.Value : user.EmergencyContactUs);
+                    cmd.Parameters.AddWithValue("@Address", string.IsNullOrEmpty(user.AddressUs) ? (object)DBNull.Value : user.AddressUs);
+                    cmd.Parameters.AddWithValue("@RoleId", user.RoleIdUs);
+                    cmd.Parameters.AddWithValue("@StateId", user.StateIdUs);
+
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
+            }
+        }
+
+
+        // REVISAR EXISTENCIA DE CEDÚLA O CORREO 
+        public bool ExistsByIdentificationOrEmail(string identification, string email)
+        {
+            using SqlConnection conn = (SqlConnection)_context.OpenConnection();
+            string query = "SELECT COUNT(1) FROM USUARIO WHERE Cedula_Us = @Identification OR Correo_Us = @Email";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@Identification", identification);
+                cmd.Parameters.AddWithValue("@Email", email);
+
+                int count = (int)cmd.ExecuteScalar();
+                return count > 0;
+            }
+        }
+
+
+
+        // LISTAR USUARIOS 
         public IEnumerable<UserListDto> GetUsers(string? searchTerm = null)
         {
             var users = new List<UserListDto>();
@@ -62,58 +117,48 @@ namespace triage_backend.Repositories
 
 
 
-
-        // Revisar si ya existe cedúla y correo
-        public bool ExistsByIdentificationOrEmail(string identification, string email)
-        {
-            using SqlConnection conn = (SqlConnection)_context.OpenConnection();
-            string query = "SELECT COUNT(1) FROM USUARIO WHERE Cedula_Us = @Identification OR Correo_Us = @Email";
-
-            using (SqlCommand cmd = new SqlCommand(query, conn))
-            {
-                cmd.Parameters.AddWithValue("@Identification", identification);
-                cmd.Parameters.AddWithValue("@Email", email);
-
-                int count = (int)cmd.ExecuteScalar();
-                return count > 0;
-            }
-        }
-
-        // Crear Usuario 
-        public int CreateUser(UserDto user, string passwordHash)
+        // OBTENER USUARIO POR ID (PRECARGA PARA EDITAR)
+        public UserDto? GetUserById(int userId)
         {
             using (SqlConnection conn = (SqlConnection)_context.OpenConnection())
             {
                 string query = @"
-                    INSERT INTO USUARIO 
-                    (Nombre_Us, Apellido_Us, Correo_Us, Contrasena_Us, Telefono_Us, Cedula_Us, 
-                     Fecha_Nac_Us, Sexo_Us, Contacto_Emer, Direccion_Us, ID_Rol, ID_Estado)
-                    VALUES 
-                    (@FirstName, @LastName, @Email, @Password, @Phone, @Identification, 
-                     @BirthDate, @Gender, @EmergencyContact, @Address, @RoleId, @StateId);
-                    SELECT SCOPE_IDENTITY();";
+            SELECT ID_Usuario, Nombre_Us, Apellido_Us, Cedula_Us, Correo_Us, Sexo_Us, 
+                   Fecha_Nac_Us, ID_Rol, ID_Estado
+            FROM USUARIO
+            WHERE ID_Usuario = @UserId";
 
                 using (SqlCommand cmd = new SqlCommand(query, conn))
                 {
-                    cmd.Parameters.AddWithValue("@FirstName", user.FirstNameUs);
-                    cmd.Parameters.AddWithValue("@LastName", user.LastNameUs);
-                    cmd.Parameters.AddWithValue("@Email", user.EmailUs);
-                    cmd.Parameters.AddWithValue("@Password", passwordHash);
-                    cmd.Parameters.AddWithValue("@Phone", string.IsNullOrEmpty(user.PhoneUs) ? (object)DBNull.Value : user.PhoneUs);
-                    cmd.Parameters.AddWithValue("@Identification", user.IdentificationUs);
-                    cmd.Parameters.AddWithValue("@BirthDate", user.BirthDateUs == default ? (object)DBNull.Value : user.BirthDateUs);
-                    cmd.Parameters.AddWithValue("@Gender", user.GenderUs);
-                    cmd.Parameters.AddWithValue("@EmergencyContact", string.IsNullOrEmpty(user.EmergencyContactUs) ? (object)DBNull.Value : user.EmergencyContactUs);
-                    cmd.Parameters.AddWithValue("@Address", string.IsNullOrEmpty(user.AddressUs) ? (object)DBNull.Value : user.AddressUs);
-                    cmd.Parameters.AddWithValue("@RoleId", user.RoleIdUs);
-                    cmd.Parameters.AddWithValue("@StateId", user.StateIdUs);
+                    cmd.Parameters.AddWithValue("@UserId", userId);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new UserDto
+                            {
+                                UserId = reader["ID_Usuario"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_Usuario"]),
+                                FirstNameUs = reader["Nombre_Us"] as string ?? string.Empty,
+                                LastNameUs = reader["Apellido_Us"] as string ?? string.Empty,
+                                IdentificationUs = reader["Cedula_Us"] as string ?? string.Empty,
+                                EmailUs = reader["Correo_Us"] as string ?? string.Empty,
+                                GenderUs = reader["Sexo_Us"] == DBNull.Value ? false : Convert.ToBoolean(reader["Sexo_Us"]),
+                                BirthDateUs = reader["Fecha_Nac_Us"] == DBNull.Value ? default : Convert.ToDateTime(reader["Fecha_Nac_Us"]),
+                                RoleIdUs = reader["ID_Rol"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_Rol"]),
+                                StateIdUs = reader["ID_Estado"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_Estado"])
 
-                    return Convert.ToInt32(cmd.ExecuteScalar());
+
+                            };
+                        }
+                    }
                 }
             }
+            return null;
         }
 
-        // Verifica si el usuario tiene procesos activos asociados
+
+
+        // VERIFICAR PROCESOS ACTIVOS ANTES DE DESHABILITAR
         public bool HasActiveProcesses(int userId)
         {
             using SqlConnection conn = (SqlConnection)_context.OpenConnection();
@@ -132,9 +177,70 @@ namespace triage_backend.Repositories
             return count > 0;
         }
 
-         
 
-        // Cambiar estado del usuario (0 = Inactivo, 1 = Activo)
+
+        // ACTUALIZAR USUARIO 
+        public (bool Success, string Message) UpdateUser(UserDto user)
+        {
+            using (SqlConnection conn = (SqlConnection)_context.OpenConnection())
+            {
+                // Verificar duplicados excluyendo al mismo usuario
+                string checkQuery = @"
+            SELECT COUNT(1)
+            FROM USUARIO
+            WHERE (Cedula_Us = @Identification OR Correo_Us = @Email)
+              AND ID_Usuario <> @UserId";
+
+                using (SqlCommand checkCmd = new SqlCommand(checkQuery, conn))
+                {
+                    checkCmd.Parameters.AddWithValue("@Identification", user.IdentificationUs);
+                    checkCmd.Parameters.AddWithValue("@Email", user.EmailUs);
+                    checkCmd.Parameters.AddWithValue("@UserId", user.UserId);
+
+                    int duplicates = (int)checkCmd.ExecuteScalar();
+                    if (duplicates > 0)
+                    {
+                        return (false, "Ya existe un usuario con el mismo correo o cédula.");
+                    }
+                }
+
+                // Actualizar datos
+                string updateQuery = @"
+            UPDATE USUARIO
+            SET Nombre_Us = @FirstName,
+                Apellido_Us = @LastName,
+                Cedula_Us = @Identification,
+                Correo_Us = @Email,
+                Sexo_Us = @Gender,
+                Fecha_Nac_Us = @BirthDate,
+                ID_Rol = @RoleId,
+                ID_Estado = @StateId
+            WHERE ID_Usuario = @UserId";
+
+                using (SqlCommand updateCmd = new SqlCommand(updateQuery, conn))
+                {
+                    updateCmd.Parameters.AddWithValue("@FirstName", user.FirstNameUs);
+                    updateCmd.Parameters.AddWithValue("@LastName", user.LastNameUs);
+                    updateCmd.Parameters.AddWithValue("@Identification", user.IdentificationUs);
+                    updateCmd.Parameters.AddWithValue("@Email", user.EmailUs);
+                    updateCmd.Parameters.AddWithValue("@Gender", user.GenderUs);
+                    updateCmd.Parameters.AddWithValue("@BirthDate", user.BirthDateUs == default ? (object)DBNull.Value : user.BirthDateUs);
+                    updateCmd.Parameters.AddWithValue("@RoleId", user.RoleIdUs);
+                    updateCmd.Parameters.AddWithValue("@StateId", user.StateIdUs);
+                    updateCmd.Parameters.AddWithValue("@UserId", user.UserId);
+
+                    int rowsAffected = updateCmd.ExecuteNonQuery();
+                    if (rowsAffected > 0)
+                        return (true, "La información del usuario se actualizó exitosamente.");
+                    else
+                        return (false, "No se encontró el usuario o no se realizaron cambios.");
+                }
+            }
+        }
+
+
+
+        // CAMBIAR EL ESTDO DEL USUARIO  (0 = Inactivo, 1 = Activo)
         public bool ChangeUserStatus(int userId, int stateId)
         {
             using (SqlConnection conn = (SqlConnection)_context.OpenConnection())
