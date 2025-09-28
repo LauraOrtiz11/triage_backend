@@ -6,9 +6,14 @@ namespace triage_backend.Services
     {
         object CreateUser(UserDto userDto);
 
-        object ChangeUserStatus(int userId, int stateId);
+        ResponseDto ChangeUserStatus(int userId, int stateId);
+
 
         IEnumerable<UserListDto> GetUsers(string? searchTerm = null);
+
+        (bool Success, string Message) UpdateUser(UserDto user);
+
+        UserDto? GetUserById(int userId);
 
     }
 }
