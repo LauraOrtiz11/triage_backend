@@ -123,8 +123,8 @@ namespace triage_backend.Repositories
             using (SqlConnection conn = (SqlConnection)_context.OpenConnection())
             {
                 string query = @"
-            SELECT ID_Usuario, Nombre_Us, Apellido_Us, Cedula_Us, Correo_Us, Sexo_Us, 
-                   Fecha_Nac_Us, ID_Rol, ID_Estado
+            SELECT ID_Usuario, Nombre_Us, Apellido_Us, Telefono_Us,Cedula_Us, Correo_Us, Sexo_Us, 
+                Contacto_Emer, Direccion_Us, Fecha_Nac_Us, ID_Rol, ID_Estado
             FROM USUARIO
             WHERE ID_Usuario = @UserId";
 
@@ -140,9 +140,12 @@ namespace triage_backend.Repositories
                                 UserId = reader["ID_Usuario"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_Usuario"]),
                                 FirstNameUs = reader["Nombre_Us"] as string ?? string.Empty,
                                 LastNameUs = reader["Apellido_Us"] as string ?? string.Empty,
+                                PhoneUs = reader["Telefono_US"] as string ?? string.Empty,
                                 IdentificationUs = reader["Cedula_Us"] as string ?? string.Empty,
                                 EmailUs = reader["Correo_Us"] as string ?? string.Empty,
                                 GenderUs = reader["Sexo_Us"] == DBNull.Value ? false : Convert.ToBoolean(reader["Sexo_Us"]),
+                                EmergencyContactUs = reader["Contacto_Emer"] as string?? string.Empty,
+                                AddressUs = reader["Direccion_Us"] as string?? string.Empty,
                                 BirthDateUs = reader["Fecha_Nac_Us"] == DBNull.Value ? default : Convert.ToDateTime(reader["Fecha_Nac_Us"]),
                                 RoleIdUs = reader["ID_Rol"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_Rol"]),
                                 StateIdUs = reader["ID_Estado"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_Estado"])
