@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using triage_backend.Interfaces;
 using triage_backend.Repositories;
 using triage_backend.Services;
 using triage_backend.Utilities;
@@ -14,6 +17,10 @@ builder.Services.AddCors(options =>
     );
 });
 
+builder.Services.AddControllers();
+
+
+
 // ------------------- Servicios -------------------
 // Contexto de BD
 builder.Services.AddScoped<ContextDB>();
@@ -25,6 +32,10 @@ builder.Services.AddScoped<IUserService, UserService>();
 // Patient
 builder.Services.AddScoped<PatientRepository>();
 builder.Services.AddScoped<IPatientService, PatientService>();
+
+// IA
+builder.Services.AddHttpClient<IHuggingFaceService, HuggingFaceService>();
+
 
 // ------------------- Controladores -------------------
 builder.Services.AddControllers();
