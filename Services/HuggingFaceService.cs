@@ -24,13 +24,28 @@ namespace triage_backend.Services
 
         public async Task<TriageResponseDto> GetTriagePredictionAsync(TriageRequestDto request)
         {
-            // Unir síntomas + signos vitales en un texto clínico
-            var inputText = $"Symptoms: {request.Symptoms}. " +
-                            $"Vital Signs: Heart Rate {request.VitalSigns.HeartRate}, " +
-                            $"Respiratory Rate {request.VitalSigns.RespiratoryRate}, " +
-                            $"Blood Pressure {request.VitalSigns.BloodPressure}, " +
-                            $"Temperature {request.VitalSigns.Temperature}, " +
-                            $"Oxygen Saturation {request.VitalSigns.OxygenSaturation}.";
+            // Valores normales de referencia para orientar al modelo
+            var normalRanges = "Normal ranges: Heart Rate 60-100 bpm, Respiratory Rate 12-20 rpm, " +
+                               "Blood Pressure around 120/80 mmHg, Temperature 36.0-37.5 °C, Oxygen Saturation ≥ 95%.";
+
+            // Prompt enriquecido con contexto y reglas
+            var inputText =
+            "You are an experienced triage nurse in an emergency department. " +
+            "Classify the urgency level strictly as one of: blue, green, yellow, orange, or red. " +
+            "Guidelines: " +
+            "Blue = mild conditions like common cold, mild headache, slight sore throat. " +
+            "Green = moderate conditions that need attention but not life-threatening, like stable fractures or mild asthma. " +
+            "Yellow = conditions requiring rapid treatment to avoid complications, like chest infection with fever. " +
+            "Orange = urgent conditions that could escalate quickly, like severe chest pain, severe shortness of breath. " +
+            "Red = critical emergencies requiring immediate intervention, like cardiac arrest, shock, respiratory failure. " +
+            "Always prioritize the SYMPTOMS, and use vital signs as supporting evidence. " +
+            "Normal ranges: Heart Rate 60-100 bpm, Respiratory Rate 12-20 rpm, Blood Pressure ~120/80 mmHg, Temperature 36.0-37.5 °C, Oxygen Saturation ≥ 95%. " +
+            $"Patient case: Symptoms: {request.Symptoms}. " +
+            $"Vital Signs: Heart Rate {request.VitalSigns.HeartRate}, " +
+            $"Respiratory Rate {request.VitalSigns.RespiratoryRate}, " +
+            $"Blood Pressure {request.VitalSigns.BloodPressure}, " +
+            $"Temperature {request.VitalSigns.Temperature}, " +
+            $"Oxygen Saturation {request.VitalSigns.OxygenSaturation}.";
 
             var candidateLabels = new[] { "blue", "green", "yellow", "orange", "red" };
 
@@ -61,6 +76,7 @@ namespace triage_backend.Services
                 Message = GetTriageMessage(label)
             };
         }
+
 
         private string GetTriageMessage(string level)
         {
