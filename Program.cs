@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using triage_backend.Interfaces;
 using triage_backend.Repositories;
@@ -36,6 +35,8 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 // IA
 builder.Services.AddHttpClient<IHuggingFaceService, HuggingFaceService>();
 
+// Triage Patient
+builder.Services.AddScoped<ITriagePatientService, TriageService>();
 
 // ------------------- Controladores -------------------
 builder.Services.AddControllers();
