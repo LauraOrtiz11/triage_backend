@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -54,6 +55,9 @@ builder.Services.AddSingleton<ITokenService, TokenService>();
 // tokens revocados
 builder.Services.AddScoped<IRevokedTokenRepository, RevokedTokenRepository>();
 
+// Triage Patient   
+builder.Services.AddScoped<ITriagePatientService, TriageService>();
+
 // ------------------- Configuración CORS (dev) -------------------
 builder.Services.AddCors(options =>
 {
@@ -93,8 +97,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             // IMPORTANT: indica cuál claim contiene el role
             NameClaimType = ClaimTypes.Name,
             RoleClaimType = ClaimTypes.Role
-// Triage Patient
-builder.Services.AddScoped<ITriagePatientService, TriageService>();
+
 
         };
         // OnTokenValidated: validar jti en tabla RevokedTokens
