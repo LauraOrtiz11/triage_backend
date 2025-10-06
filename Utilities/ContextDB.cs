@@ -59,5 +59,8 @@ namespace triage_backend.Utilities
         {
             CloseConnection();
         }
+
+        //public DbSet<RevokedToken> RevokedTokens { get; set; }
+
     }
 }
