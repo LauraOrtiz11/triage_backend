@@ -66,7 +66,7 @@ namespace triage_backend.Repositories
         public IEnumerable<UserListDto> GetUsers(string? searchTerm = null)
         {
             var users = new List<UserListDto>();
-
+            
             string query = @"
                 SELECT 
                     U.ID_Usuario AS UserId,
@@ -144,8 +144,8 @@ namespace triage_backend.Repositories
                                 IdentificationUs = reader["Cedula_Us"] as string ?? string.Empty,
                                 EmailUs = reader["Correo_Us"] as string ?? string.Empty,
                                 GenderUs = reader["Sexo_Us"] == DBNull.Value ? false : Convert.ToBoolean(reader["Sexo_Us"]),
-                                EmergencyContactUs = reader["Contacto_Emer"] as string ?? string.Empty,
-                                AddressUs = reader["Direccion_Us"] as string ?? string.Empty,
+                                EmergencyContactUs = reader["Contacto_Emer"] as string?? string.Empty,
+                                AddressUs = reader["Direccion_Us"] as string?? string.Empty,
                                 BirthDateUs = reader["Fecha_Nac_Us"] == DBNull.Value ? default : Convert.ToDateTime(reader["Fecha_Nac_Us"]),
                                 RoleIdUs = reader["ID_Rol"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_Rol"]),
                                 StateIdUs = reader["ID_Estado"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_Estado"])

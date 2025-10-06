@@ -1,3 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using triage_backend.Interfaces;
 using triage_backend.Repositories;
 using triage_backend.Services;
 using System.Security.Claims;
@@ -11,6 +14,20 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend",
+        policy => policy
+            .WithOrigins("http://localhost:3000") // URL de tu frontend
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+    );
+});
+
+builder.Services.AddControllers();
+
+
+
 // ------------------- Servicios -------------------
 // Contexto de BD
 builder.Services.AddScoped<ContextDB>();
@@ -23,97 +40,11 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<PatientRepository>();
 builder.Services.AddScoped<IPatientService, PatientService>();
 
-// Token service (asegúrate de tener ITokenService y TokenService implementados)
-builder.Services.AddSingleton<ITokenService, TokenService>();
+// IA
+builder.Services.AddHttpClient<IHuggingFaceService, HuggingFaceService>();
 
-// tokens revocados
-builder.Services.AddScoped<IRevokedTokenRepository, RevokedTokenRepository>();
 
-// ------------------- Configuración CORS (dev) -------------------
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("DevCors", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
-
-// ------------------- Configuración JWT (Authentication + Authorization) -------------------
-// Lee claves/issuer/audience desde appsettings (asegúrate de tenerlas allí)
-var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in configuration");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "triage_backend";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "triage_backend_users";
-var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
-
-// Registra esquema por defecto
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false; // en dev se puede dejar false; en prod true
-        options.SaveToken = true;
-
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-            ClockSkew = TimeSpan.Zero,
-
-            // IMPORTANT: indica cuál claim contiene el role
-            NameClaimType = ClaimTypes.Name,
-            RoleClaimType = ClaimTypes.Role
-
-        };
-        // OnTokenValidated: validar jti en tabla RevokedTokens
-        options.Events = new JwtBearerEvents
-        {
-            OnTokenValidated = async context =>
-            {
-                try
-                {
-                    var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-                    if (string.IsNullOrEmpty(jti))
-                    {
-                        // Si no hay jti, fallamos la validación
-                        context.Fail("Token missing jti");
-                        return;
-                    }
-
-                    // Servicio para comprobar tokens revocados (tu repo)
-                    var revokedRepo = context.HttpContext.RequestServices.GetService<IRevokedTokenRepository>();
-                    if (revokedRepo == null)
-                    {
-                        // si no está registrado, opcionalmente permitir o fallar. Aquí solo salimos.
-                        return;
-                    }
-
-                    var isRevoked = await revokedRepo.IsRevokedAsync(jti);
-                    if (isRevoked)
-                    {
-                        context.Fail("Token revoked");
-                        return;
-                    }
-
-                    // opcional: podrías comprobar que el usuario sigue activo en BD, etc.
-                }
-                catch (Exception ex)
-                {
-                    // Log si lo necesitas
-                    context.Fail("OnTokenValidated error: " + ex.Message);
-                }
-            }
-        };
-    });
-
-builder.Services.AddAuthorization();
-
-// ------------------- Controladores / Swagger -------------------
+// ------------------- Controladores -------------------
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -165,6 +96,7 @@ app.UseHttpsRedirection();
 // Importante: primero autenticación, luego autorización
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors("AllowFrontend");
 
 app.MapControllers();
 
