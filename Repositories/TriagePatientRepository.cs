@@ -34,9 +34,12 @@ namespace triage_backend.Repositories
                     SELECT 
                         U.ID_Usuario AS PatientId,                  
                         U.Cedula_Us AS Identification,              
-                        U.Nombre_Us AS FirstName,                   
-                        U.Apellido_Us AS LastName,                  
-                        U.Sexo_Us AS Gender,                        
+                        (U.Nombre_Us + ' ' + U.Apellido_Us) AS FullName,                 
+                        CASE 
+                            WHEN U.Sexo_Us = 1 THEN 'Masculino'
+                            WHEN U.Sexo_Us = 0 THEN 'Femenino'
+                            ELSE 'No especificado'
+                        END AS Gender,                      
                         DATEDIFF(YEAR, U.Fecha_Nac_Us, GETDATE()) AS Age, 
                         T.ID_Triage AS TriageId,                    
                         T.Fecha_Registro AS RegistrationDate,       
@@ -77,12 +80,10 @@ namespace triage_backend.Repositories
                             {
                                 PatientId = Convert.ToInt64(reader["PatientId"]),
                                 Identification = reader["Identification"] as string ?? string.Empty,
-                                FirstName = reader["FirstName"] as string ?? string.Empty,
-                                LastName = reader["LastName"] as string ?? string.Empty,
+                                FullName = reader["FullName"] as string ?? string.Empty,
                                 Gender = reader["Gender"] as string ?? string.Empty,
                                 Age = Convert.ToInt32(reader["Age"]),
-                                TriageId = Convert.ToInt64(reader["TriageId"]),
-                                RegistrationDate = Convert.ToDateTime(reader["RegistrationDate"]),
+
                                 Symptoms = reader["Symptoms"] as string ?? string.Empty,
                                 Temperature = reader["Temperature"] != DBNull.Value ? Convert.ToDecimal(reader["Temperature"]) : 0,
                                 HeartRate = reader["HeartRate"] != DBNull.Value ? Convert.ToInt32(reader["HeartRate"]) : 0,
@@ -90,8 +91,7 @@ namespace triage_backend.Repositories
                                 RespiratoryRate = reader["RespiratoryRate"] != DBNull.Value ? Convert.ToInt32(reader["RespiratoryRate"]) : 0,
                                 OxygenSaturation = reader["OxygenSaturation"] != DBNull.Value ? Convert.ToInt32(reader["OxygenSaturation"]) : 0,
                                 PriorityName = reader["PriorityName"] as string ?? string.Empty,
-                                PriorityColor = reader["PriorityColor"] as string ?? string.Empty,
-                                AssignedDoctorName = reader["AssignedDoctorName"] as string ?? string.Empty,
+
                             };
 
                             patients.Add(dto);
