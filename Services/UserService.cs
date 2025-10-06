@@ -27,7 +27,7 @@ namespace triage_backend.Services
             }
 
             // 2. Encriptar contraseña 
-            string passwordHash = EncryptUtility.HashPassword(userDto.IdentificationUs);
+            string passwordHash = EncryptUtility.HashPassword(userDto.PasswordUs);
 
 
             // 3. Insertar Usuario
@@ -41,5 +41,11 @@ namespace triage_backend.Services
                 UserId = newId
             };
         }
+        // método para login (busca usuario por email y retorna un User simple) 
+        public UserDto? GetByEmail(string email)
+        {
+            return _userRepository.GetByEmail(email);
+        }
     }
 }
+
