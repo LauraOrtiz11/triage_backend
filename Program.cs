@@ -1,15 +1,16 @@
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using triage_backend.Interfaces;
 using triage_backend.Repositories;
 using triage_backend.Services;
-using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
 using triage_backend.Utilities;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.OpenApi.Models;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -35,6 +36,10 @@ builder.Services.AddScoped<ContextDB>();
 // User
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+
+// Auth
+builder.Services.AddScoped<AutenticationRepository>();
+builder.Services.AddScoped<IAutenticationService, AutenticationService>();
 
 // Patient
 builder.Services.AddScoped<PatientRepository>();
