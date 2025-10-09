@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 using triage_backend.Dtos;
-using triage_backend.Interfaces;
+using triage_backend.Services;
 
 namespace triage_backend.Controllers
 {
@@ -9,23 +8,28 @@ namespace triage_backend.Controllers
     [Route("api/[controller]")]
     public class TriageController : ControllerBase
     {
-        private readonly IHuggingFaceService _huggingFaceService;
+        private readonly TriageDataService _triageService;
 
-        public TriageController(IHuggingFaceService huggingFaceService)
+        public TriageController(TriageDataService triageService)
         {
-            _huggingFaceService = huggingFaceService;
+            _triageService = triageService;
         }
 
-        [HttpPost("predict")]
-        public async Task<ActionResult<TriageResponseDto>> PredictTriage([FromBody] TriageRequestDto request)
+        [HttpPost("register")]
+        public async Task<ActionResult<TriageResponseDto>> RegisterTriage([FromBody] TriageRequestDto request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Symptoms))
-            {
-                return BadRequest("Symptoms and vital signs are required.");
-            }
+            if (request == null)
+                return BadRequest("La solicitud está vacía.");
 
-            var prediction = await _huggingFaceService.GetTriagePredictionAsync(request);
-            return Ok(prediction);
+            try
+            {
+                var result = await _triageService.ProcessTriageAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Error procesando triage: {ex.Message}");
+            }
         }
     }
 }
