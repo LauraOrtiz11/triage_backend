@@ -2,6 +2,9 @@
 {
     public VitalSignsDto VitalSigns { get; set; } = new VitalSignsDto();
     public string Symptoms { get; set; } = string.Empty;
+    public int IdPaciente { get; set; }
+    public int? IdMedico { get; set; }
+    public int IdEnfermero { get; set; }
 }
 
 public class VitalSignsDto
