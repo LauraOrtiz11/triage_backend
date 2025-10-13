@@ -56,8 +56,11 @@ namespace triage_backend.Repositories
                         INNER JOIN USUARIO AS U ON U.ID_Usuario = T.ID_Paciente
                         INNER JOIN PRIORIDAD AS P ON P.ID_Prioridad = T.ID_Prioridad
                         LEFT JOIN USUARIO AS M ON M.ID_Usuario = T.ID_Medico
-                    WHERE (@Color IS NULL OR P.Color_Prio = @Color)
+                    WHERE 
+                         T.ID_Estado = 1 
+                        AND (@Color IS NULL OR P.Color_Prio = @Color)
                     ORDER BY 
+                        T.Fecha_Registro DESC,
                         CASE 
                             WHEN P.Color_Prio = 'rojo' THEN 1
                             WHEN P.Color_Prio = 'naranja' THEN 2
@@ -65,8 +68,7 @@ namespace triage_backend.Repositories
                             WHEN P.Color_Prio = 'verde' THEN 4
                             WHEN P.Color_Prio = 'azul' THEN 5
                             ELSE 6
-                        END,
-                        T.Fecha_Registro DESC;";
+                        END;";
 
                 using (var command = new SqlCommand(query, (SqlConnection)connection))
                 {
