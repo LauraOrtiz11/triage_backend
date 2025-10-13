@@ -25,7 +25,7 @@ namespace triage_backend.Controllers
         }
 
         /// <summary>
-        /// Retrieves a list of triage patients, optionally filtered by priority color.
+        /// Recupera una lista de pacientes clasificados, opcionalmente filtrados por color de prioridad.
         /// </summary>
         /// <param name="color">
         /// (Optional) Priority color to filter triage patients.
