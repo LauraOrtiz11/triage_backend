@@ -56,6 +56,10 @@ builder.Services.AddScoped<HuggingFaceService>();
 // Triage Patient
 builder.Services.AddScoped<ITriagePatientService, TriageService>();
 
+// Triage Result Nurse (Confirmación de triage por enfermero)
+builder.Services.AddScoped<TriageResultRepository>();
+builder.Services.AddScoped<ITriageResultService, TriageResultService>();
+
 // ------------------- Repositorios -------------------
 builder.Services.AddScoped<ITriageRepository, TriageRepository>();
 
