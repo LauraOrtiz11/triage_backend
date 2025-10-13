@@ -1,9 +1,10 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+锘縰sing Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Reflection;
 using triage_backend.Interfaces;
 using triage_backend.Repositories;
 using triage_backend.Services;
@@ -11,7 +12,7 @@ using triage_backend.Utilities;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ------------------- Configuraci髇 de CORS -------------------
+// ------------------- Configuraci贸n de CORS -------------------
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("DevCors", policy =>
@@ -56,15 +57,14 @@ builder.Services.AddScoped<HuggingFaceService>();
 // Triage Patient
 builder.Services.AddScoped<ITriagePatientService, TriageService>();
 
-// Triage Result Nurse (Confirmaci髇 de triage por enfermero)
+// Triage Result Nurse (Confirmaci贸n de triaje por enfermero)
 builder.Services.AddScoped<TriageResultRepository>();
 builder.Services.AddScoped<ITriageResultService, TriageResultService>();
 
 // ------------------- Repositorios -------------------
 builder.Services.AddScoped<ITriageRepository, TriageRepository>();
 
-
-// ------------------- Configuraci髇 JWT -------------------
+// ------------------- Configuraci贸n JWT -------------------
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in configuration");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "triage_backend";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "triage_backend_users";
@@ -73,7 +73,7 @@ var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.RequireHttpsMetadata = false; // en dev puede ser false
+        options.RequireHttpsMetadata = false;
         options.SaveToken = true;
 
         options.TokenValidationParameters = new TokenValidationParameters
@@ -123,7 +123,20 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Triage API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Triage API - Intelligent Triage System ",
+        Version = "v1",
+        Description = @"API del sistema de triaje inteligente para apaoyar el sisttema de urgencias.  
+        Permite la clasificaci贸n autom谩tica y validaci贸n manual de pacientes mediante IA y personal m茅dico.  
+        **Repositorio en GitHub:** [Ir al proyecto](https://github.com/LauraOrtiz11/triage_backend)",
+        Contact = new OpenApiContact
+        {
+            Name = "Equipo de Desarrollo - Proyecto Triage",
+            Url = new Uri("https://github.com/LauraOrtiz11/triage_backend")
+        },
+       
+    });
 
     // Configurar JWT en Swagger
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -150,6 +163,14 @@ builder.Services.AddSwaggerGen(c =>
             new string[] {}
         }
     });
+
+    // Incluir comentarios XML para la documentaci贸n detallada
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        c.IncludeXmlComments(xmlPath);
+    }
 });
 
 var app = builder.Build();
@@ -158,14 +179,18 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Triage API v1");
+        c.DocumentTitle = "Triage API Documentation";
+        c.InjectStylesheet("/swagger-ui/custom.css"); 
+    });
 }
 
 app.UseCors("DevCors");
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
