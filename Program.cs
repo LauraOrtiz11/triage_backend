@@ -61,6 +61,10 @@ builder.Services.AddScoped<ITriagePatientService, TriageService>();
 builder.Services.AddScoped<TriageResultRepository>();
 builder.Services.AddScoped<ITriageResultService, TriageResultService>();
 
+// Mostrar lista de pacientes al medico 
+builder.Services.AddScoped<MedicListPRepository>();
+builder.Services.AddScoped<IMedicListPService, MedicListPService>();
+
 // ------------------- Repositorios -------------------
 builder.Services.AddScoped<ITriageRepository, TriageRepository>();
 
