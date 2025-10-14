@@ -2,9 +2,9 @@
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
-using System.Reflection;
 using triage_backend.Interfaces;
 using triage_backend.Repositories;
 using triage_backend.Services;
@@ -64,6 +64,10 @@ builder.Services.AddScoped<ITriageResultService, TriageResultService>();
 // Mostrar lista de pacientes al medico 
 builder.Services.AddScoped<MedicListPRepository>();
 builder.Services.AddScoped<IMedicListPService, MedicListPService>();
+
+// Manejar el Médico asignado, estado y tiempos
+builder.Services.AddScoped<ConsultationRepository>();
+builder.Services.AddScoped<IConsultationService, ConsultationService>();
 
 // ------------------- Repositorios -------------------
 builder.Services.AddScoped<ITriageRepository, TriageRepository>();
