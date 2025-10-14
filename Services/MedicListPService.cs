@@ -12,16 +12,9 @@ namespace triage_backend.Services
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public List<MedicListPDto> GetMedicListP()
+        public List<MedicListPDto> GetMedicListP(MedicListFilterDto? filter = null)
         {
-            try
-            {
-                return _repository.GetMedicListP();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Error while retrieving patient triage data: " + ex.Message);
-            }
+            return _repository.GetMedicListP(filter);
         }
     }
 }

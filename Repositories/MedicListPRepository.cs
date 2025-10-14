@@ -15,18 +15,20 @@ namespace triage_backend.Repositories
         }
 
         /// <summary>
-        /// Obtiene la lista de pacientes activos con su nivel de prioridad, hora de llegada y médico tratante.
+        /// Obtiene la lista de pacientes activos con su nivel de prioridad, hora de llegada y médico tratante,
+        /// permitiendo filtrar por nombre o cédula.
         /// </summary>
-        public List<MedicListPDto> GetMedicListP()
+        public List<MedicListPDto> GetMedicListP(MedicListFilterDto? filter = null)
         {
             var patients = new List<MedicListPDto>();
 
-            const string query = @"
+            var query = @"
                 SELECT 
                     P.NOMBRE_US + ' ' + P.APELLIDO_US AS NOMBRE_COMPLETO,
                     P.CEDULA_US AS CEDULA,
                     T.SINTOMAS,
                     ISNULL(PRR.NOMBRE_PRIO, 'Sin resultado') AS PRIORIDAD,
+                    ISNULL(PRR.COLOR_PRIO, 'Sin color') AS COLOR,
                     FORMAT(T.FECHA_REGISTRO, 'HH:mm:ss') AS HORA_REGISTRO,
                     CASE 
                         WHEN T.ID_MEDICO IS NULL THEN 'Sin asignar'
@@ -45,6 +47,25 @@ namespace triage_backend.Repositories
                 LEFT JOIN USUARIO M 
                     ON T.ID_MEDICO = M.ID_USUARIO
                 WHERE P.ID_ESTADO = 1
+            ";
+
+            // Agregar condiciones de filtro dinámicamente
+            var parameters = new List<SqlParameter>();
+
+            if (!string.IsNullOrEmpty(filter?.FullName))
+            {
+                query += " AND (P.NOMBRE_US + ' ' + P.APELLIDO_US) LIKE @FullName";
+                parameters.Add( new SqlParameter("@FullName", $"%{filter.FullName}%"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(filter?.Identification))
+            {
+                query += " AND P.CEDULA_US LIKE @Identification";
+                parameters.Add(new SqlParameter("@Identification", $"%{filter.Identification}%"));
+            }
+
+            // Ordenamiento por prioridad y hora
+            query += @"
                 ORDER BY 
                     CASE 
                         WHEN PRR.COLOR_PRIO = 'Rojo' THEN 1
@@ -58,29 +79,29 @@ namespace triage_backend.Repositories
 
             try
             {
-                using (var connection = _context.OpenConnection())
-                using (var command = new SqlCommand(query, (SqlConnection)connection))
+                using var connection = _context.OpenConnection();
+                using var command = new SqlCommand(query, (SqlConnection)connection);
+                command.CommandType = CommandType.Text;
+
+                if (parameters.Count > 0)
                 {
-                    command.CommandType = CommandType.Text;
+                    command.Parameters.AddRange(parameters.ToArray());
+                }
 
-                    using (var reader = command.ExecuteReader())
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var dto = new MedicListPDto
                     {
-                        while (reader.Read())
-                        {
-                            var dto = new MedicListPDto
-                            {
-                                FullName = reader["NOMBRE_COMPLETO"]?.ToString() ?? "Sin nombre",
-                                Identification = reader["CEDULA"]?.ToString() ?? "Sin documento",
-                                Symptoms = reader["SINTOMAS"]?.ToString() ?? "No especificados",
-                                PriorityLevel = reader["PRIORIDAD"]?.ToString() ?? "No asignada",
-                                Color = reader["COLOR"]?.ToString() ?? "Sin color",
-                                ArrivalHour = reader["HORA_REGISTRO"]?.ToString() ?? "--:--:--",
-                                MedicName = reader["MEDICO_TRATANTE"]?.ToString() ?? "Sin asignar"
-                            };
-
-                            patients.Add(dto);
-                        }
-                    }
+                        FullName = reader["NOMBRE_COMPLETO"]?.ToString() ?? "Sin nombre",
+                        Identification = reader["CEDULA"]?.ToString() ?? "Sin documento",
+                        Symptoms = reader["SINTOMAS"]?.ToString() ?? "No especificados",
+                        PriorityLevel = reader["PRIORIDAD"]?.ToString() ?? "No asignada",
+                        Color = reader["COLOR"]?.ToString() ?? "Sin color",
+                        ArrivalHour = reader["HORA_REGISTRO"]?.ToString() ?? "--:--:--",
+                        MedicName = reader["MEDICO_TRATANTE"]?.ToString() ?? "Sin asignar"
+                    };
+                    patients.Add(dto);
                 }
 
                 return patients;

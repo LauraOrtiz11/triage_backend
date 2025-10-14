@@ -10,4 +10,10 @@
         public string ArrivalHour { get; set; } = string.Empty;
         public string MedicName { get; set; } = string.Empty;
     }
+
+    public class MedicListFilterDto
+    {
+        public string? FullName { get; set; }
+        public string? Identification { get; set; }
+    }
 }
