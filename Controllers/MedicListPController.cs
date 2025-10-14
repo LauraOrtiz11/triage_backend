@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using triage_backend.Dtos;
 using triage_backend.Services;
 
 namespace triage_backend.Controllers
@@ -9,7 +10,6 @@ namespace triage_backend.Controllers
     {
         private readonly IMedicListPService _service;
 
-        // ✅ Inyección de dependencias correcta (el servicio se inyecta automáticamente)
         public MedicListPController(IMedicListPService service)
         {
             _service = service ?? throw new ArgumentNullException(nameof(service));
@@ -17,15 +17,17 @@ namespace triage_backend.Controllers
 
         /// <summary>
         /// Obtiene la lista de pacientes activos con su información de triage y médico tratante.
+        /// Se puede filtrar por nombre completo o número de cédula.
         /// </summary>
-        [HttpGet("GetAll")]
+        /// <param name="filter">Opcional: filtros de nombre o cédula</param>
+        [HttpPost("GetAllFiltered")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(500)]
-        public IActionResult GetAll()
+        public IActionResult GetAllFiltered([FromBody] MedicListFilterDto? filter)
         {
             try
             {
-                var data = _service.GetMedicListP();
+                var data = _service.GetMedicListP(filter);
 
                 if (data == null || data.Count == 0)
                     return Ok(new { success = true, message = "No hay pacientes registrados actualmente." });

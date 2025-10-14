@@ -4,6 +4,6 @@ namespace triage_backend.Services
 {
     public interface IMedicListPService
     {
-        List<MedicListPDto> GetMedicListP();
+        List<MedicListPDto> GetMedicListP(MedicListFilterDto? filter = null);
     }
 }
