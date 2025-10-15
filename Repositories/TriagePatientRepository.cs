@@ -32,6 +32,7 @@ namespace triage_backend.Repositories
             {
                 var query = @"
                     SELECT 
+                        T.ID_TRIAGE, 
                         U.ID_Usuario AS PatientId,                  
                         U.Cedula_Us AS Identification,              
                         (U.Nombre_Us + ' ' + U.Apellido_Us) AS FullName,                 
@@ -80,6 +81,7 @@ namespace triage_backend.Repositories
                         {
                             var dto = new TriagePatientDto
                             {
+                                TriageId = reader["ID_TRIAGE"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_TRIAGE"]),
                                 PatientId = Convert.ToInt64(reader["PatientId"]),
                                 Identification = reader["Identification"] as string ?? string.Empty,
                                 FullName = reader["FullName"] as string ?? string.Empty,

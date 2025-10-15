@@ -5,6 +5,7 @@
     public int IdPaciente { get; set; }
     public int? IdMedico { get; set; }
     public int IdEnfermero { get; set; }
+    
 }
 
 public class VitalSignsDto
