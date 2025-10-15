@@ -18,7 +18,6 @@ namespace triage_backend.Controllers
         /// <summary>
         /// Endpoint para crear un nuevo paciente.
         /// </summary>
-        /// <param name="patientDto">Datos del paciente a registrar.</param>
         [HttpPost("create")]
         public IActionResult CreatePatient([FromBody] PatientDto patientDto)
         {
@@ -26,8 +25,30 @@ namespace triage_backend.Controllers
                 return BadRequest(new { Success = false, Message = "Los datos del paciente no pueden ser nulos." });
 
             var result = _patientService.CreatePatient(patientDto);
-
             return Ok(result);
         }
+
+        /// <summary>
+        /// Endpoint para obtener información básica del paciente por cédula.
+        /// </summary>
+        [HttpPost("get-by-document")]
+        public IActionResult GetPatientByDocument([FromBody] PatientDocumentRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.DocumentIdPt))
+                return BadRequest(new { Success = false, Message = "Debe ingresar el número de identificación." });
+
+            var patient = _patientService.GetPatientByDocument(request.DocumentIdPt);
+
+            if (patient == null)
+                return NotFound(new { Success = false, Message = "No se encontró ningún paciente con esa cédula." });
+
+            return Ok(new
+            {
+                Success = true,
+                Data = patient
+            });
+        }
+
+
     }
 }
