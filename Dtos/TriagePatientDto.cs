@@ -2,6 +2,7 @@
 {
     public class TriagePatientDto
     {
+        public int TriageId { get; set; }
         public long PatientId { get; set; } // USUARIO.ID_Usuario
         public string Identification { get; set; } = string.Empty; // USUARIO.Cedula_Us
         public string FullName { get; set; } = string.Empty;     // Nombre + Apellido

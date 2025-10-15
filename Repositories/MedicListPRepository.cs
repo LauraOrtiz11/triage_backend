@@ -23,31 +23,34 @@ namespace triage_backend.Repositories
             var patients = new List<MedicListPDto>();
 
             var query = @"
-                SELECT 
-                    P.NOMBRE_US + ' ' + P.APELLIDO_US AS NOMBRE_COMPLETO,
-                    P.CEDULA_US AS CEDULA,
-                    T.SINTOMAS,
-                    ISNULL(PRR.NOMBRE_PRIO, 'Sin resultado') AS PRIORIDAD,
-                    ISNULL(PRR.COLOR_PRIO, 'Sin color') AS COLOR,
-                    FORMAT(T.FECHA_REGISTRO, 'HH:mm:ss') AS HORA_REGISTRO,
-                    CASE 
-                        WHEN T.ID_MEDICO IS NULL THEN 'Sin asignar'
-                        ELSE ISNULL(M.NOMBRE_US + ' ' + M.APELLIDO_US, 'Sin asignar')
-                    END AS MEDICO_TRATANTE
-                FROM USUARIO P
-                INNER JOIN TRIAGE T 
-                    ON P.ID_USUARIO = T.ID_PACIENTE
-                OUTER APPLY (
-                    SELECT TOP 1 PR2.NOMBRE_PRIO, PR2.COLOR_PRIO
-                    FROM TRIAGE_RESULTADO TR
-                    INNER JOIN PRIORIDAD PR2 ON TR.ID_PRIORIDAD = PR2.ID_PRIORIDAD
-                    WHERE TR.ID_TRIAGE = T.ID_TRIAGE
-                    ORDER BY TR.FECHA_REGISTRO DESC
-                ) AS PRR
-                LEFT JOIN USUARIO M 
-                    ON T.ID_MEDICO = M.ID_USUARIO
-                WHERE P.ID_ESTADO = 1
-            ";
+    SELECT 
+        T.ID_TRIAGE, 
+        P.NOMBRE_US + ' ' + P.APELLIDO_US AS NOMBRE_COMPLETO,
+        P.CEDULA_US AS CEDULA,
+        T.SINTOMAS,
+        ISNULL(PRR.NOMBRE_PRIO, 'Sin resultado') AS PRIORIDAD,
+        ISNULL(PRR.COLOR_PRIO, 'Sin color') AS COLOR,
+        FORMAT(T.FECHA_REGISTRO, 'HH:mm:ss') AS HORA_REGISTRO,
+        CASE 
+            WHEN T.ID_MEDICO IS NULL THEN 'Sin asignar'
+            ELSE ISNULL(M.NOMBRE_US + ' ' + M.APELLIDO_US, 'Sin asignar')
+        END AS MEDICO_TRATANTE
+    FROM USUARIO P
+    INNER JOIN TRIAGE T 
+        ON P.ID_USUARIO = T.ID_PACIENTE
+    OUTER APPLY (
+        SELECT TOP 1 PR2.NOMBRE_PRIO, PR2.COLOR_PRIO
+        FROM TRIAGE_RESULTADO TR
+        INNER JOIN PRIORIDAD PR2 
+            ON TR.ID_PRIORIDAD = PR2.ID_PRIORIDAD
+        WHERE TR.ID_TRIAGE = T.ID_TRIAGE
+        ORDER BY TR.FECHA_REGISTRO DESC
+    ) AS PRR
+    LEFT JOIN USUARIO M 
+        ON T.ID_MEDICO = M.ID_USUARIO
+    WHERE P.ID_ESTADO = 1
+"
+;
 
             // Agregar condiciones de filtro dinámicamente
             var parameters = new List<SqlParameter>();
@@ -93,6 +96,7 @@ namespace triage_backend.Repositories
                 {
                     var dto = new MedicListPDto
                     {
+                        TriageId = reader["ID_TRIAGE"] == DBNull.Value ? 0 : Convert.ToInt32(reader["ID_TRIAGE"]),
                         FullName = reader["NOMBRE_COMPLETO"]?.ToString() ?? "Sin nombre",
                         Identification = reader["CEDULA"]?.ToString() ?? "Sin documento",
                         Symptoms = reader["SINTOMAS"]?.ToString() ?? "No especificados",
