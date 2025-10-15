@@ -69,6 +69,11 @@ builder.Services.AddScoped<IMedicListPService, MedicListPService>();
 builder.Services.AddScoped<ConsultationRepository>();
 builder.Services.AddScoped<IConsultationService, ConsultationService>();
 
+// Historial de usuario
+builder.Services.AddScoped<TriageFullInfoRepository>();
+builder.Services.AddScoped<ITriageFullInfoService, TriageFullInfoService>();
+
+
 // ------------------- Repositorios -------------------
 builder.Services.AddScoped<ITriageRepository, TriageRepository>();
 
