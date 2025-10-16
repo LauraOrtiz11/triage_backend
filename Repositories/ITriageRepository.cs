@@ -5,11 +5,12 @@
         Task<int> InsertTriageAsync(
          TriageRequestDto request,
          string suggestedLevel,
-         int idPaciente,
-         int idMedico,
-         int idEnfermero,
-         int idPrioridad,
-         int idEstado);
+         int ID_Patient,
+         int ID_Doctor,
+         int ID_Nurse,
+         int ID_Priority,
+         int ID_State,
+         int PatientAge);
 
     }
 }
