@@ -27,21 +27,23 @@ namespace triage_backend.Services
             });
 
             // 🧩 Mapear la prioridad a partir del color sugerido por la IA
-            int idPrioridad = MapPriorityToId(prediction.SuggestedLevel);
+            int ID_Priority = MapPriorityToId(prediction.SuggestedLevel);
 
             // 🟢 Estado fijo: 1
-            int idEstado = 1;
+            int ID_State = 1;
 
             // Guardar el registro en la base de datos
             var triageId = await _triageRepository.InsertTriageAsync(
                 request,
                 prediction.SuggestedLevel,
-                request.IdPaciente,
-                request.IdMedico ?? 0,
-                request.IdEnfermero,
-                idPrioridad,
-                idEstado
+                request.ID_Patient,
+                request.ID_Doctor ?? 0,
+                request.ID_Nurse,
+                ID_Priority,   
+                ID_State,      
+                request.PatientAge 
             );
+
 
             // Retornar resultado
             return new TriageResponseDto
