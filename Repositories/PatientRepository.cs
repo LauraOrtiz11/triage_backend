@@ -59,16 +59,18 @@ namespace triage_backend.Repositories
             }
         }
 
-        // ✅ Nuevo método para buscar por cédula
+        //Nuevo método para buscar por cédula
         public object? GetPatientByDocument(string documentId)
         {
             using SqlConnection conn = (SqlConnection)_context.OpenConnection();
             string query = @"
-                SELECT ID_USUARIO AS Id,
-                       NOMBRE_US AS Nombre,
-                       APELLIDO_US AS Apellido
-                FROM USUARIO
-                WHERE CEDULA_US = @DocumentId";
+        SELECT 
+            ID_USUARIO AS Id,
+            NOMBRE_US AS Nombre,
+            APELLIDO_US AS Apellido,
+            FECHA_NAC_US AS FechaNacimiento
+        FROM USUARIO
+        WHERE CEDULA_US = @DocumentId";
 
             using (SqlCommand cmd = new SqlCommand(query, conn))
             {
@@ -77,15 +79,22 @@ namespace triage_backend.Repositories
                 using SqlDataReader reader = cmd.ExecuteReader();
                 if (reader.Read())
                 {
+                    DateTime fechaNacimiento = Convert.ToDateTime(reader["FechaNacimiento"]);
+                    int edad = DateTime.Today.Year - fechaNacimiento.Year;
+                    if (fechaNacimiento.Date > DateTime.Today.AddYears(-edad))
+                        edad--;
+
                     return new
                     {
                         Id = reader["Id"],
                         Nombre = reader["Nombre"].ToString(),
-                        Apellido = reader["Apellido"].ToString()
+                        Apellido = reader["Apellido"].ToString(),
+                        Edad = edad
                     };
                 }
             }
             return null;
         }
+
     }
 }
