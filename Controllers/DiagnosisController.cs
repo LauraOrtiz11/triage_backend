@@ -29,5 +29,16 @@ namespace triage_backend.Controllers
 
             return Ok(diagnosis);
         }
+
+        [HttpGet("get-all")]
+        public async Task<IActionResult> GetAllDiagnoses()
+        {
+            var diagnoses = await _diagnosisService.GetAllDiagnosesAsync();
+
+            if (diagnoses == null || !diagnoses.Any())
+                return NotFound(new { message = "No diagnoses found." });
+
+            return Ok(diagnoses);
+        }
     }
 }
