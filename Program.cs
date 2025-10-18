@@ -73,6 +73,8 @@ builder.Services.AddScoped<IConsultationService, ConsultationService>();
 builder.Services.AddScoped<TriageFullInfoRepository>();
 builder.Services.AddScoped<ITriageFullInfoService, TriageFullInfoService>();
 
+// Diagnostico
+builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
 
 // ------------------- Repositorios -------------------
 builder.Services.AddScoped<ITriageRepository, TriageRepository>();
