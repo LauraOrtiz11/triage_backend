@@ -72,7 +72,11 @@ builder.Services.AddScoped<IConsultationService, ConsultationService>();
 // Historial de usuario
 builder.Services.AddScoped<TriageFullInfoRepository>();
 builder.Services.AddScoped<ITriageFullInfoService, TriageFullInfoService>();
+builder.Services.AddScoped<IHistoryService, HistoryService>();
 
+
+// Diagnostico
+builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
 
 // ------------------- Repositorios -------------------
 builder.Services.AddScoped<ITriageRepository, TriageRepository>();
