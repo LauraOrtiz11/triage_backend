@@ -5,6 +5,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using triage_backend;
+using triage_backend.Controllers;
 using triage_backend.Interfaces;
 using triage_backend.Repositories;
 using triage_backend.Services;
@@ -72,6 +74,11 @@ builder.Services.AddScoped<IConsultationService, ConsultationService>();
 // Historial de usuario
 builder.Services.AddScoped<TriageFullInfoRepository>();
 builder.Services.AddScoped<ITriageFullInfoService, TriageFullInfoService>();
+
+//Envio de correos 
+builder.Services.AddScoped<PriorityUpdateRepository>();
+builder.Services.AddScoped<IPriorityUpdateService, PriorityUpdateService>();
+
 
 
 // ------------------- Repositorios -------------------
