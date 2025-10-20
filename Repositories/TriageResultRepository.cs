@@ -13,28 +13,123 @@ namespace triage_backend.Repositories
         {
             _context = context;
         }
-
-        // === Guarda la decisión del triage ===
+        // Guarda el resultado, recalcula turno y notifica
         public bool SaveTriageResult(TriageResultDto result)
         {
-            using (var connection = _context.OpenConnection())
+            using var conn = (SqlConnection)_context.OpenConnection();
+            using var tx = conn.BeginTransaction();
+
+            try
             {
-                const string query = @"
-                    INSERT INTO TRIAGE_RESULTADO (ID_Triage, ID_Prioridad, ID_Usuario, Es_Prioridad_Final)
-                    VALUES (@TriageId, @PriorityId, @UserId, @IsFinalPriority);
-                ";
+                // 1) Insertar nuevo resultado
+                const string insertSql = @"
+INSERT INTO TRIAGE_RESULTADO (ID_Triage, ID_Prioridad, ID_Usuario, Es_Prioridad_Final, Fecha_Registro)
+VALUES (@TriageId, @PriorityId, @UserId, @IsFinalPriority, GETDATE());";
 
-                using (var command = new SqlCommand(query, (SqlConnection)connection))
+                using (var cmd = new SqlCommand(insertSql, conn, tx))
                 {
-                    command.Parameters.AddWithValue("@TriageId", result.TriageId);
-                    command.Parameters.AddWithValue("@PriorityId", result.PriorityId);
-                    command.Parameters.AddWithValue("@UserId", result.NurseId);
-                    command.Parameters.AddWithValue("@IsFinalPriority", result.IsFinalPriority);
-
-                    int rows = command.ExecuteNonQuery();
-                    return rows > 0;
+                    cmd.Parameters.AddWithValue("@TriageId", result.TriageId);
+                    cmd.Parameters.AddWithValue("@PriorityId", result.PriorityId);
+                    cmd.Parameters.AddWithValue("@UserId", result.NurseId);
+                    cmd.Parameters.AddWithValue("@IsFinalPriority", result.IsFinalPriority);
+                    cmd.ExecuteNonQuery();
                 }
+
+                // 2) Obtener info necesaria
+                string color = "X";
+                string priorityName = "Sin prioridad";
+                string patientEmail = "";
+                string patientName = "Paciente";
+
+                const string infoSql = @"
+SELECT
+    P.COLOR_PRIO     AS Color,
+    P.NOMBRE_PRIO    AS PriorityName,
+    U.CORREO_US      AS Email,
+    (U.NOMBRE_US + ' ' + U.APELLIDO_US) AS FullName
+FROM TRIAGE T
+JOIN USUARIO U  ON U.ID_USUARIO   = T.ID_PACIENTE
+JOIN PRIORIDAD P ON P.ID_PRIORIDAD = @PriorityId
+WHERE T.ID_TRIAGE = @TriageId;";
+
+                using (var cmd = new SqlCommand(infoSql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("@PriorityId", result.PriorityId);
+                    cmd.Parameters.AddWithValue("@TriageId", result.TriageId);
+                    using var r = cmd.ExecuteReader();
+                    if (r.Read())
+                    {
+                        color = (r["Color"]?.ToString() ?? "X");
+                        priorityName = (r["PriorityName"]?.ToString() ?? "Sin prioridad");
+                        patientEmail = (r["Email"]?.ToString() ?? "");
+                        patientName = (r["FullName"]?.ToString() ?? "Paciente");
+                    }
+                }
+
+                // 3) Generar turno seguro por orden de llegada
+                string turnCode = GenerateTurnCode(conn, tx, result.TriageId, result.PriorityId, color);
+
+                // 4) Actualizar turno en TRIAGE
+                const string updSql = "UPDATE TRIAGE SET TURNO = @Turn WHERE ID_TRIAGE = @Id;";
+                using (var cmd = new SqlCommand(updSql, conn, tx))
+                {
+                    cmd.Parameters.AddWithValue("@Turn", turnCode);
+                    cmd.Parameters.AddWithValue("@Id", result.TriageId);
+                    cmd.ExecuteNonQuery();
+                }
+
+                tx.Commit();
+
+                // 5) Enviar correo fuera de la transacción
+                if (!string.IsNullOrWhiteSpace(patientEmail))
+                {
+                    var subject = "Actualización de su turno y prioridad";
+                    var body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
+                    EmailUtility.SendEmail(patientEmail, subject, body);
+                }
+
+                return true;
             }
+            catch
+            {
+                try { tx.Rollback(); } catch { /* noop */ }
+                throw;
+            }
+        }
+
+        // Calcula turno por orden de llegada dentro de la prioridad (seguro ante concurrencia)
+        private static string GenerateTurnCode(SqlConnection conn, SqlTransaction tx, int triageId, int priorityId, string color)
+        {
+            // Obtener FECHA_REGISTRO del triage actual
+            DateTime fechaRegistroActual;
+            const string fechaSql = "SELECT FECHA_REGISTRO FROM TRIAGE WHERE ID_TRIAGE = @Id;";
+            using (var cmd = new SqlCommand(fechaSql, conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@Id", triageId);
+                fechaRegistroActual = (DateTime)cmd.ExecuteScalar();
+            }
+
+            // Contar cuántos triages de la misma prioridad llegaron antes (y desempatar por ID)
+            const string ordenSql = @"
+SELECT COUNT(*) + 1
+FROM TRIAGE
+WHERE ID_PRIORIDAD = @Prio
+  AND (
+        FECHA_REGISTRO < @Fecha
+        OR (FECHA_REGISTRO = @Fecha AND ID_TRIAGE < @IdTriage)
+      );";
+
+            int position;
+            using (var cmd = new SqlCommand(ordenSql, conn, tx))
+            {
+                cmd.Parameters.AddWithValue("@Prio", priorityId);
+                cmd.Parameters.AddWithValue("@Fecha", fechaRegistroActual);
+                cmd.Parameters.AddWithValue("@IdTriage", triageId);
+                position = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+
+            string initial = string.IsNullOrEmpty(color) ? "X" : color.Substring(0, 1).ToUpper();
+            return $"turno-{initial}{position}";
         }
 
         // === Trae información del paciente y su triage ===
