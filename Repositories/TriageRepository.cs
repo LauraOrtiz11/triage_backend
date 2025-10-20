@@ -1,4 +1,4 @@
-﻿using Microsoft.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using triage_backend.Dtos;
 using triage_backend.Interfaces;
 using triage_backend.Utilities;
