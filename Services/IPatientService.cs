@@ -5,5 +5,6 @@ namespace triage_backend.Services
     public interface IPatientService
     {
         object CreatePatient(PatientDto patientDto);
+        object? GetPatientByDocument(string documentId);
     }
 }

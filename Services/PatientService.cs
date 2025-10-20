@@ -16,10 +16,6 @@ namespace triage_backend.Services
 
         public object CreatePatient(PatientDto patientDto)
         {
-            // ===============================
-            // VALIDACIONES
-            // ===============================
-
             if (string.IsNullOrWhiteSpace(patientDto.DocumentIdPt))
                 return new { Success = false, Message = "El número de documento es obligatorio." };
 
@@ -50,30 +46,11 @@ namespace triage_backend.Services
             if (patientDto.BirthDatePt > DateTime.Now)
                 return new { Success = false, Message = "La fecha de nacimiento no puede ser en el futuro." };
 
-            // ✅ Género ya viene como bool → no requiere validación extra
-            // false = Femenino, true = Masculino
-
-            // ===============================
-            // VALIDAR DUPLICADOS EN BD
-            // ===============================
             bool exists = _patientRepository.ExistsByIdentificationOrEmail(patientDto.DocumentIdPt, patientDto.EmailPt);
             if (exists)
-            {
-                return new
-                {
-                    Success = false,
-                    Message = "La identificación o el correo ya están registrados."
-                };
-            }
+                return new { Success = false, Message = "La identificación o el correo ya están registrados." };
 
-            // ===============================
-            // ENCRIPTAR CONTRASEÑA (cédula como base)
-            // ===============================
             string passwordHash = EncryptUtility.HashPassword(patientDto.DocumentIdPt);
-
-            // ===============================
-            // CREAR PACIENTE
-            // ===============================
             int newId = _patientRepository.CreatePatient(patientDto, passwordHash);
 
             return new
@@ -82,6 +59,11 @@ namespace triage_backend.Services
                 Message = "Paciente registrado exitosamente.",
                 PatientId = newId
             };
+        }
+
+        public object? GetPatientByDocument(string documentId)
+        {
+            return _patientRepository.GetPatientByDocument(documentId);
         }
     }
 }
