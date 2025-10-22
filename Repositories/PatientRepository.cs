@@ -13,7 +13,6 @@ namespace triage_backend.Repositories
             _context = context;
         }
 
-        // ✅ Validar duplicados (cédula o correo)
         public bool ExistsByIdentificationOrEmail(string identification, string email)
         {
             using SqlConnection conn = (SqlConnection)_context.OpenConnection();
@@ -29,42 +28,73 @@ namespace triage_backend.Repositories
             }
         }
 
-        // ✅ Insertar Paciente en USUARIO
         public int CreatePatient(PatientDto patient, string passwordHash)
         {
-            using (SqlConnection conn = (SqlConnection)_context.OpenConnection())
+            using SqlConnection conn = (SqlConnection)_context.OpenConnection();
+            string query = @"
+                INSERT INTO USUARIO
+                (NOMBRE_US, APELLIDO_US, CORREO_US, CONTRASENA_US, TELEFONO_US, 
+                 FECHA_CREACION, CEDULA_US, FECHA_NAC_US, SEXO_US, 
+                 CONTACTO_EMER, DIRECCION_US, ID_ROL, ID_ESTADO)
+                VALUES
+                (@FirstName, @LastName, @Email, @Password, @Phone, 
+                 GETDATE(), @Identification, @BirthDate, @Gender, 
+                 @EmergencyContact, @Address, 3, 1);
+                SELECT SCOPE_IDENTITY();";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
             {
-                string query = @"
-                    INSERT INTO USUARIO
-                    (NOMBRE_US, APELLIDO_US, CORREO_US, CONTRASENA_US, TELEFONO_US, 
-                     FECHA_CREACION, CEDULA_US, FECHA_NAC_US, SEXO_US, 
-                     CONTACTO_EMER, DIRECCION_US, ID_ROL, ID_ESTADO)
-                    VALUES
-                    (@FirstName, @LastName, @Email, @Password, @Phone, 
-                     GETDATE(), @Identification, @BirthDate, @Gender, 
-                     @EmergencyContact, @Address, 3, 1);
-                    SELECT SCOPE_IDENTITY();";
+                cmd.Parameters.AddWithValue("@FirstName", patient.FirstNamePt);
+                cmd.Parameters.AddWithValue("@LastName", patient.LastNamePt);
+                cmd.Parameters.AddWithValue("@Email", patient.EmailPt);
+                cmd.Parameters.AddWithValue("@Password", passwordHash);
+                cmd.Parameters.AddWithValue("@Phone", patient.PhonePt);
+                cmd.Parameters.AddWithValue("@Identification", patient.DocumentIdPt);
+                cmd.Parameters.AddWithValue("@BirthDate", patient.BirthDatePt);
+                cmd.Parameters.AddWithValue("@Gender", patient.GenderPt ? 1 : 0);
+                cmd.Parameters.AddWithValue("@EmergencyContact", string.IsNullOrEmpty(patient.EmergencyContactPt) ? (object)DBNull.Value : patient.EmergencyContactPt);
+                cmd.Parameters.AddWithValue("@Address", string.IsNullOrEmpty(patient.AddressPt) ? (object)DBNull.Value : patient.AddressPt);
 
-                using (SqlCommand cmd = new SqlCommand(query, conn))
-                {
-                    cmd.Parameters.AddWithValue("@FirstName", patient.FirstNamePt);
-                    cmd.Parameters.AddWithValue("@LastName", patient.LastNamePt);
-                    cmd.Parameters.AddWithValue("@Email", patient.EmailPt);
-                    cmd.Parameters.AddWithValue("@Password", passwordHash);
-                    cmd.Parameters.AddWithValue("@Phone", patient.PhonePt);
-                    cmd.Parameters.AddWithValue("@Identification", patient.DocumentIdPt);
-                    cmd.Parameters.AddWithValue("@BirthDate", patient.BirthDatePt);
-
-                    // ⚡ bool → int (false = 0 = Femenino, true = 1 = Masculino)
-                    int genderDb = patient.GenderPt ? 1 : 0;
-                    cmd.Parameters.AddWithValue("@Gender", genderDb);
-
-                    cmd.Parameters.AddWithValue("@EmergencyContact", string.IsNullOrEmpty(patient.EmergencyContactPt) ? (object)DBNull.Value : patient.EmergencyContactPt);
-                    cmd.Parameters.AddWithValue("@Address", string.IsNullOrEmpty(patient.AddressPt) ? (object)DBNull.Value : patient.AddressPt);
-
-                    return Convert.ToInt32(cmd.ExecuteScalar());
-                }
+                return Convert.ToInt32(cmd.ExecuteScalar());
             }
         }
+
+        //Nuevo método para buscar por cédula
+        public object? GetPatientByDocument(string documentId)
+        {
+            using SqlConnection conn = (SqlConnection)_context.OpenConnection();
+            string query = @"
+        SELECT 
+            ID_USUARIO AS Id,
+            NOMBRE_US AS Nombre,
+            APELLIDO_US AS Apellido,
+            FECHA_NAC_US AS FechaNacimiento
+        FROM USUARIO
+        WHERE CEDULA_US = @DocumentId";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@DocumentId", documentId);
+
+                using SqlDataReader reader = cmd.ExecuteReader();
+                if (reader.Read())
+                {
+                    DateTime fechaNacimiento = Convert.ToDateTime(reader["FechaNacimiento"]);
+                    int edad = DateTime.Today.Year - fechaNacimiento.Year;
+                    if (fechaNacimiento.Date > DateTime.Today.AddYears(-edad))
+                        edad--;
+
+                    return new
+                    {
+                        Id = reader["Id"],
+                        Nombre = reader["Nombre"].ToString(),
+                        Apellido = reader["Apellido"].ToString(),
+                        Edad = edad
+                    };
+                }
+            }
+            return null;
+        }
+
     }
 }
