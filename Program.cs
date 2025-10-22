@@ -86,7 +86,6 @@ builder.Services.AddScoped<IHistoryService, HistoryService>();
 builder.Services.AddScoped<PriorityUpdateRepository>();
 builder.Services.AddScoped<IPriorityUpdateService, PriorityUpdateService>();
 
-
 // Registrar servicios personalizados
 builder.Services.AddScoped<IReportService, ReportService>();
 // Medicamentos
