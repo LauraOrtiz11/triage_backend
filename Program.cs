@@ -79,7 +79,8 @@ builder.Services.AddScoped<ITriageFullInfoService, TriageFullInfoService>();
 builder.Services.AddScoped<PriorityUpdateRepository>();
 builder.Services.AddScoped<IPriorityUpdateService, PriorityUpdateService>();
 
-
+// Registrar servicios personalizados
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // ------------------- Repositorios -------------------
 builder.Services.AddScoped<ITriageRepository, TriageRepository>();
