@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
@@ -86,6 +86,9 @@ builder.Services.AddScoped<IHistoryService, HistoryService>();
 builder.Services.AddScoped<PriorityUpdateRepository>();
 builder.Services.AddScoped<IPriorityUpdateService, PriorityUpdateService>();
 
+
+// Registrar servicios personalizados
+builder.Services.AddScoped<IReportService, ReportService>();
 // Medicamentos
 builder.Services.AddScoped<MedicationRepository>();
 builder.Services.AddScoped<IMedicationService, MedicationService>();
