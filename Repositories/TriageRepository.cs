@@ -17,11 +17,12 @@ namespace triage_backend.Repositories
         public async Task<int> InsertTriageAsync(
             TriageRequestDto request,
             string suggestedLevel,
-            int idPaciente,
-            int idMedico,
-            int idEnfermero,
-            int idPrioridad,
-            int idEstado)
+            int ID_Patient,
+            int ID_Doctor,
+            int ID_Nurse,
+            int ID_Priority,
+            int ID_State,
+            int PatientAge)
         {
             using var conn = (SqlConnection)_context.OpenConnection();
             using var tx = conn.BeginTransaction();
@@ -45,17 +46,17 @@ SELECT SCOPE_IDENTITY();";
 
                 using (var cmd = new SqlCommand(insertSql, conn, tx))
                 {
-                    cmd.Parameters.AddWithValue("@ID_PACIENTE", idPaciente);
-                    cmd.Parameters.AddWithValue("@ID_MEDICO", (object?)idMedico ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@ID_PRIORIDAD", idPrioridad);
-                    cmd.Parameters.AddWithValue("@ID_ESTADO", idEstado);
+                    cmd.Parameters.AddWithValue("@ID_PACIENTE", ID_Patient);
+                    cmd.Parameters.AddWithValue("@ID_MEDICO", (object?)ID_Doctor ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@ID_PRIORIDAD", ID_Priority);
+                    cmd.Parameters.AddWithValue("@ID_ESTADO", ID_State);
                     cmd.Parameters.AddWithValue("@SINTOMAS", (object?)request.Symptoms ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@TEMPERATURA", request.VitalSigns.Temperature);
                     cmd.Parameters.AddWithValue("@FRECUENCIA_CARD", request.VitalSigns.HeartRate);
                     cmd.Parameters.AddWithValue("@FRECUENCIA_RES", request.VitalSigns.RespiratoryRate);
                     cmd.Parameters.AddWithValue("@PRESION_ARTERIAL", (object?)request.VitalSigns.BloodPressure ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@OXIGENACION", request.VitalSigns.OxygenSaturation);
-                    cmd.Parameters.AddWithValue("@ID_ENFERMERO", idEnfermero);
+                    cmd.Parameters.AddWithValue("@ID_ENFERMERO", ID_Nurse);
 
                     var res = await cmd.ExecuteScalarAsync();
                     triageId = Convert.ToInt32(res);
@@ -68,8 +69,8 @@ VALUES (@IdTriage, @IdPrioridad, @IdUsuario, 0, GETDATE());";
                 using (var cmd = new SqlCommand(triageResSql, conn, tx))
                 {
                     cmd.Parameters.AddWithValue("@IdTriage", triageId);
-                    cmd.Parameters.AddWithValue("@IdPrioridad", idPrioridad);
-                    cmd.Parameters.AddWithValue("@IdUsuario", idEnfermero);
+                    cmd.Parameters.AddWithValue("@IdPrioridad", ID_Priority);
+                    cmd.Parameters.AddWithValue("@IdUsuario", ID_Nurse);
                     await cmd.ExecuteNonQueryAsync();
                 }
 
@@ -79,7 +80,7 @@ VALUES (@IdTriage, @IdPrioridad, @IdUsuario, 0, GETDATE());";
                 const string prioSql = "SELECT NOMBRE_PRIO, COLOR_PRIO FROM PRIORIDAD WHERE ID_PRIORIDAD = @Id;";
                 using (var cmd = new SqlCommand(prioSql, conn, tx))
                 {
-                    cmd.Parameters.AddWithValue("@Id", idPrioridad);
+                    cmd.Parameters.AddWithValue("@Id", ID_Priority);
                     using var r = await cmd.ExecuteReaderAsync();
                     if (await r.ReadAsync())
                     {
@@ -89,7 +90,7 @@ VALUES (@IdTriage, @IdPrioridad, @IdUsuario, 0, GETDATE());";
                 }
 
                 // 4) Generar turno seguro
-                string turnCode = GenerateTurnCode(conn, tx, triageId, idPrioridad, color);
+                string turnCode = GenerateTurnCode(conn, tx, triageId, ID_Priority, color);
 
                 // 5) Actualizar turno en TRIAGE
                 const string updSql = "UPDATE TRIAGE SET TURNO = @Turn WHERE ID_TRIAGE = @Id;";

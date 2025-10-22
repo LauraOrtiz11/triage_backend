@@ -13,11 +13,11 @@ namespace triage_backend.Utilities
             using var smtp = new SmtpClient("smtp.gmail.com")
             {
                 Port = 587,
-                Credentials = new NetworkCredential("dcakesnot@gmail.com", "buqkdatqrdmmnjrg"),
+                Credentials = new NetworkCredential("triageintelligent@gmail.com", "qdypntmqgcjxjqlm"),
                 EnableSsl = true
             };
 
-            using var message = new MailMessage("dcakesnot@gmail.com", toEmail, subject, body)
+            using var message = new MailMessage("triageintelligent@gmail.com", toEmail, subject, body)
             {
                 IsBodyHtml = true
             };

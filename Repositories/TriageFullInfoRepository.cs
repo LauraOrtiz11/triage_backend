@@ -106,50 +106,47 @@ namespace triage_backend.Repositories
             using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = @"
-                    WITH DatosPrincipales AS (
-                        SELECT 
-                            c.ID_CONSULTA,
-                            c.ID_HISTORIAL,
-                            CONVERT(VARCHAR(5), c.FECHA_INICIO_CONSULTA, 108) AS HoraInicioConsulta,
-                            CONVERT(VARCHAR(5), c.FECHA_FIN_CONSULTA, 108) AS HoraFinConsulta,
-                            c.ID_ESTADO
-                        FROM CONSULTA c
-                        WHERE c.ID_HISTORIAL IN (
-                            SELECT ID_HISTORIAL FROM HISTORIAL WHERE ID_PACIENTE = @PacienteID
-                        )
-                    ),
-                    Detalle AS (
-                        SELECT 
-                            dp.*,
-                            diag.ID_Diagnostico,
-                            diag.NOMBRE_DIAG,
-                            diag.OBSERV_DIAG,
-                            trat.ID_Tratamiento,
-                            trat.Descrip_Trata,
-                            trat.Observ_Trata,
-                            trat.Dosis_Recet,
-                            ROW_NUMBER() OVER(PARTITION BY dp.ID_CONSULTA ORDER BY diag.ID_Diagnostico, trat.ID_Tratamiento) AS rnFila
-                        FROM DatosPrincipales dp
-                        LEFT JOIN HISTORIAL_DIAGNOSTICO hd ON hd.ID_HISTORIAL = dp.ID_HISTORIAL
-                        LEFT JOIN DIAGNOSTICO diag ON diag.ID_Diagnostico = hd.ID_Diagnostico
-                        LEFT JOIN DIAGNOSTICO_TRATAMIENTO dt ON dt.ID_Diagnostico = diag.ID_Diagnostico
-                        LEFT JOIN TRATAMIENTO trat ON trat.ID_Tratamiento = dt.ID_Tratamiento
-                    )
-                    SELECT
-                        CASE WHEN rnFila = 1 THEN ID_CONSULTA ELSE NULL END AS ID_CONSULTA,
-                        CASE WHEN rnFila = 1 THEN HoraInicioConsulta ELSE NULL END AS HoraInicioConsulta,
-                        CASE WHEN rnFila = 1 THEN HoraFinConsulta ELSE NULL END AS HoraFinConsulta,
-                        CASE WHEN rnFila = 1 THEN ID_ESTADO ELSE NULL END AS ID_ESTADO,
-                        ID_Diagnostico,
-                        NOMBRE_DIAG,
-                        OBSERV_DIAG,
-                        ID_Tratamiento,
-                        Descrip_Trata,
-                        Observ_Trata,
-                        Dosis_Recet
-                    FROM Detalle
-                    WHERE ID_Diagnostico IS NOT NULL OR ID_Tratamiento IS NOT NULL
-                    ORDER BY ID_CONSULTA, rnFila;";
+WITH DatosPrincipales AS (
+    SELECT 
+        c.ID_CONSULTA,
+        c.ID_HISTORIAL,
+        CONVERT(VARCHAR(5), c.FECHA_INICIO_CONSULTA, 108) AS HoraInicioConsulta,
+        CONVERT(VARCHAR(5), c.FECHA_FIN_CONSULTA, 108) AS HoraFinConsulta,
+        c.ID_ESTADO
+    FROM CONSULTA c
+    WHERE c.ID_HISTORIAL IN (
+        SELECT ID_HISTORIAL FROM HISTORIAL WHERE ID_PACIENTE = @PacienteID
+    )
+),
+Detalle AS (
+    SELECT 
+        dp.*,
+        diag.ID_Diagnostico,
+        diag.NOMBRE_DIAG,
+        diag.OBSERV_DIAG,
+        trat.ID_Tratamiento,
+        trat.Descrip_Trata,
+        ROW_NUMBER() OVER(PARTITION BY dp.ID_CONSULTA ORDER BY diag.ID_Diagnostico, trat.ID_Tratamiento) AS rnFila
+    FROM DatosPrincipales dp
+    LEFT JOIN HISTORIAL_DIAGNOSTICO hd ON hd.ID_HISTORIAL = dp.ID_HISTORIAL
+    LEFT JOIN DIAGNOSTICO diag ON diag.ID_Diagnostico = hd.ID_Diagnostico
+    LEFT JOIN DIAGNOSTICO_TRATAMIENTO dt ON dt.ID_Diagnostico = diag.ID_Diagnostico
+    LEFT JOIN TRATAMIENTO trat ON trat.ID_Tratamiento = dt.ID_Tratamiento
+)
+SELECT
+    CASE WHEN rnFila = 1 THEN ID_CONSULTA ELSE NULL END AS ID_CONSULTA,
+    CASE WHEN rnFila = 1 THEN HoraInicioConsulta ELSE NULL END AS HoraInicioConsulta,
+    CASE WHEN rnFila = 1 THEN HoraFinConsulta ELSE NULL END AS HoraFinConsulta,
+    CASE WHEN rnFila = 1 THEN ID_ESTADO ELSE NULL END AS ID_ESTADO,
+    ID_Diagnostico,
+    NOMBRE_DIAG,
+    OBSERV_DIAG,
+    ID_Tratamiento,
+    Descrip_Trata
+FROM Detalle
+WHERE ID_Diagnostico IS NOT NULL OR ID_Tratamiento IS NOT NULL
+ORDER BY ID_CONSULTA, rnFila;"
+    ;
 
                 cmd.Parameters.Add(new SqlParameter("@PacienteID", SqlDbType.Int) { Value = patientId });
 
@@ -168,8 +165,7 @@ namespace triage_backend.Repositories
                             DiagnosisObservation = reader["OBSERV_DIAG"]?.ToString(),
                             TreatmentId = reader["ID_Tratamiento"] is DBNull ? null : Convert.ToInt32(reader["ID_Tratamiento"]),
                             TreatmentDescription = reader["Descrip_Trata"]?.ToString(),
-                            TreatmentObservation = reader["Observ_Trata"]?.ToString(),
-                            TreatmentDose = reader["Dosis_Recet"]?.ToString()
+                            
                         };
 
                         list.Add(item);
