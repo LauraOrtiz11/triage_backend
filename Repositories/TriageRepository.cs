@@ -171,5 +171,10 @@ WHERE ID_PRIORIDAD = @Prio
             string initial = string.IsNullOrEmpty(color) ? "X" : color.Substring(0, 1).ToUpper();
             return $"turno-{initial}{pos}";
         }
+
+        public Task<int> InsertTriageAsync(TriageRequestDto request, string suggestedLevel, int ID_Patient, int ID_Doctor, int ID_Nurse, int ID_Priority, int ID_State, int PatientAge)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

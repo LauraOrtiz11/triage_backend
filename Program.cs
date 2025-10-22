@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.IdentityModel.Tokens.Jwt;
@@ -58,10 +58,16 @@ builder.Services.AddScoped<HuggingFaceService>();
 
 // Triage Patient
 builder.Services.AddScoped<ITriagePatientService, TriageService>();
+builder.Services.AddScoped<ITriageRepository, TriageRepository>();
 
 // Triage Result Nurse (Confirmación de triaje por enfermero)
 builder.Services.AddScoped<TriageResultRepository>();
 builder.Services.AddScoped<ITriageResultService, TriageResultService>();
+    
+// Tratamiento
+builder.Services.AddScoped<TreatmentRepository>();
+builder.Services.AddScoped<ITreatmentService, TreatmentService>();
+
 
 // Mostrar lista de pacientes al medico 
 builder.Services.AddScoped<MedicListPRepository>();
@@ -80,14 +86,16 @@ builder.Services.AddScoped<IHistoryService, HistoryService>();
 builder.Services.AddScoped<PriorityUpdateRepository>();
 builder.Services.AddScoped<IPriorityUpdateService, PriorityUpdateService>();
 
+
 // Registrar servicios personalizados
 builder.Services.AddScoped<IReportService, ReportService>();
+// Medicamentos
+builder.Services.AddScoped<MedicationRepository>();
+builder.Services.AddScoped<IMedicationService, MedicationService>();
+
 
 // Diagnostico
 builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
-
-// ------------------- Repositorios -------------------
-builder.Services.AddScoped<ITriageRepository, TriageRepository>();
 
 // ------------------- Configuración JWT -------------------
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in configuration");
