@@ -16,7 +16,7 @@ namespace triage_backend.Controllers
         }
 
         /// <summary>
-        /// Registra un nuevo tratamiento asociado a un historial médico.
+        /// Registra un nuevo tratamiento con medicamentos y exámenes asociados.
         /// </summary>
         [HttpPost("register")]
         public IActionResult RegisterTreatment([FromBody] TreatmentRequestDto request)
@@ -25,7 +25,6 @@ namespace triage_backend.Controllers
                 return BadRequest(new { Success = false, Message = "Debe ingresar el historial y la descripción del tratamiento." });
 
             var id = _service.RegisterTreatment(request);
-
             if (id <= 0)
                 return StatusCode(500, new { Success = false, Message = "Error al registrar el tratamiento en la base de datos." });
 
