@@ -5,9 +5,10 @@ namespace triage_backend.Interfaces
     public interface ITreatmentService
     {
         /// <summary>
-        /// Registra un tratamiento y lo asocia al diagnóstico indicado.
+        /// Registra un nuevo tratamiento asociado a un historial médico.
         /// </summary>
-        /// <returns>true si todo salió bien; de lo contrario false.</returns>
-        bool RegisterTreatment(TreatmentRequestDto request);
+        /// <param name="request">Datos del tratamiento</param>
+        /// <returns>ID del tratamiento creado, o 0 si ocurre un error</returns>
+        int RegisterTreatment(TreatmentRequestDto request);
     }
 }
