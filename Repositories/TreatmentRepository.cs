@@ -20,7 +20,7 @@ namespace triage_backend.Repositories
 
             try
             {
-                // Insertar el tratamiento vinculado al historial
+                // 1️⃣ Insertar el tratamiento vinculado al historial
                 const string insertTreatmentSql = @"
                     INSERT INTO TRATAMIENTO (DESCRIP_TRATA, ID_HISTORIAL)
                     OUTPUT INSERTED.ID_TRATAMIENTO
@@ -34,7 +34,7 @@ namespace triage_backend.Repositories
                     idTreatment = (int)cmd.ExecuteScalar();
                 }
 
-                // Insertar medicamentos (si existen)
+                // 2️⃣ Asociar medicamentos (si existen)
                 if (request.MedicationIds != null && request.MedicationIds.Any())
                 {
                     const string insertTreatMedSql = @"
@@ -50,13 +50,29 @@ namespace triage_backend.Repositories
                     }
                 }
 
+                // 3️⃣ Asociar exámenes (si existen) ✅
+                if (request.ExamIds != null && request.ExamIds.Any())
+                {
+                    const string insertTreatExamSql = @"
+                        INSERT INTO TRATAMIENTO_EXAMEN (ID_TRATAMIENTO, ID_EXAMEN)
+                        VALUES (@TreatId, @ExamId);";
+
+                    foreach (var examId in request.ExamIds)
+                    {
+                        using var cmd = new SqlCommand(insertTreatExamSql, conn, tx);
+                        cmd.Parameters.AddWithValue("@TreatId", idTreatment);
+                        cmd.Parameters.AddWithValue("@ExamId", examId);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+
                 tx.Commit();
-                return idTreatment; //  Devuelve el ID generado
+                return idTreatment;
             }
             catch
             {
                 tx.Rollback();
-                return 0; // Error
+                return 0;
             }
         }
     }
