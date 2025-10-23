@@ -88,10 +88,14 @@ builder.Services.AddScoped<IPriorityUpdateService, PriorityUpdateService>();
 
 // Registrar servicios personalizados
 builder.Services.AddScoped<IReportService, ReportService>();
+
 // Medicamentos
 builder.Services.AddScoped<MedicationRepository>();
 builder.Services.AddScoped<IMedicationService, MedicationService>();
 
+// Exámenes
+builder.Services.AddScoped<ExamRepository>();
+builder.Services.AddScoped<IExamService, ExamService>();
 
 // Diagnostico
 builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
