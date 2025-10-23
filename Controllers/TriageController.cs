@@ -15,6 +15,11 @@ namespace triage_backend.Controllers
             _triageService = triageService;
         }
 
+        /// <summary>
+        /// Registra un nuevo proceso de Triage a un paciente, el enfermero digita los signos vitales y sintomas.
+        /// El modelo de inteligencia artificial retorna una clasificación estimada.
+        /// </summary>
+
         [HttpPost("register")]
         public async Task<ActionResult<TriageResponseDto>> RegisterTriage([FromBody] TriageRequestDto request)
         {

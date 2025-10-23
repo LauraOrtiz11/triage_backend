@@ -16,6 +16,10 @@ namespace triage_backend.Controllers
             _diagnosisService = diagnosisService;
         }
 
+        /// <summary>
+        /// Mediante el ID del medicamento trae toda la información del mismo.
+        /// </summary>
+
         [HttpPost("get-by-id")]
         public async Task<IActionResult> GetDiagnosisById([FromBody] DiagnosisRequestDto request)
         {
@@ -29,6 +33,10 @@ namespace triage_backend.Controllers
 
             return Ok(diagnosis);
         }
+
+        /// <summary>
+        /// Enlista todos los medicamentos disponibles en la base de datos
+        /// </summary>
 
         [HttpGet("get-all")]
         public async Task<IActionResult> GetAllDiagnoses()
