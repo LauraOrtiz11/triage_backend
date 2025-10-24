@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using triage_backend.Dtos;
 using triage_backend.Services;
+using triage_backend.Interfaces;
 
 namespace triage_backend.Controllers
 {
