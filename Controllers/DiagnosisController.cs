@@ -44,7 +44,7 @@ namespace triage_backend.Controllers
             var diagnoses = await _diagnosisService.GetAllDiagnosesAsync();
 
             if (diagnoses == null || !diagnoses.Any())
-                return NotFound(new { message = "No diagnoses found." });
+                return NotFound(new { message = "Diagnóstico no encontrado" });
 
             return Ok(diagnoses);
         }
