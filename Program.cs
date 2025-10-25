@@ -83,6 +83,9 @@ builder.Services.AddScoped<ITriageFullInfoService, TriageFullInfoService>();
 builder.Services.AddScoped<IHistoryService, HistoryService>();
 builder.Services.AddScoped<HistoryRepository>();
 
+// Reporte
+builder.Services.AddScoped<ReportRepository>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 
 //Envio de correos 
