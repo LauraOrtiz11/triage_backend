@@ -16,80 +16,82 @@ namespace triage_backend.Repositories
 
         /// <summary>
         /// Obtiene la lista de pacientes activos con su nivel de prioridad, hora de llegada y médico tratante,
-        /// permitiendo filtrar por nombre o cédula.
+        /// permitiendo filtrar por nombre o cédula, solo mostrando triajes activos.
         /// </summary>
         public List<MedicListPDto> GetMedicListP(MedicListFilterDto? filter = null)
         {
             var patients = new List<MedicListPDto>();
 
             var query = @"
-    SELECT 
-        T.ID_TRIAGE, 
-        P.NOMBRE_US + ' ' + P.APELLIDO_US AS NOMBRE_COMPLETO,
-        P.CEDULA_US AS CEDULA,
-        T.SINTOMAS,
-        ISNULL(PRR.NOMBRE_PRIO, 'Sin resultado') AS PRIORIDAD,
-        ISNULL(PRR.COLOR_PRIO, 'Sin color') AS COLOR,
-        FORMAT(T.FECHA_REGISTRO, 'HH:mm:ss') AS HORA_REGISTRO,
-        CASE 
-            WHEN T.ID_MEDICO IS NULL THEN 'Sin asignar'
-            ELSE ISNULL(M.NOMBRE_US + ' ' + M.APELLIDO_US, 'Sin asignar')
-        END AS MEDICO_TRATANTE
-    FROM USUARIO P
-    INNER JOIN TRIAGE T 
-        ON P.ID_USUARIO = T.ID_PACIENTE
-    OUTER APPLY (
-        SELECT TOP 1 PR2.NOMBRE_PRIO, PR2.COLOR_PRIO
-        FROM TRIAGE_RESULTADO TR
-        INNER JOIN PRIORIDAD PR2 
-            ON TR.ID_PRIORIDAD = PR2.ID_PRIORIDAD
-        WHERE TR.ID_TRIAGE = T.ID_TRIAGE
-        ORDER BY TR.FECHA_REGISTRO DESC
-    ) AS PRR
-    LEFT JOIN USUARIO M 
-        ON T.ID_MEDICO = M.ID_USUARIO
-    WHERE P.ID_ESTADO = 1
-"
-;
+SELECT 
+    T.ID_TRIAGE, 
+    P.NOMBRE_US + ' ' + P.APELLIDO_US AS NOMBRE_COMPLETO,
+    P.CEDULA_US AS CEDULA,
+    T.SINTOMAS,
+    ISNULL(PRR.NOMBRE_PRIO, 'Sin resultado') AS PRIORIDAD,
+    ISNULL(PRR.COLOR_PRIO, 'Sin color') AS COLOR,
+    FORMAT(T.FECHA_REGISTRO, 'HH:mm:ss') AS HORA_REGISTRO,
+    CASE 
+        WHEN T.ID_MEDICO IS NULL THEN 'Sin asignar'
+        ELSE ISNULL(M.NOMBRE_US + ' ' + M.APELLIDO_US, 'Sin asignar')
+    END AS MEDICO_TRATANTE
+FROM USUARIO P
+INNER JOIN TRIAGE T 
+    ON P.ID_USUARIO = T.ID_PACIENTE
+OUTER APPLY (
+    SELECT TOP 1 PR2.NOMBRE_PRIO, PR2.COLOR_PRIO
+    FROM TRIAGE_RESULTADO TR
+    INNER JOIN PRIORIDAD PR2 
+        ON TR.ID_PRIORIDAD = PR2.ID_PRIORIDAD
+    WHERE TR.ID_TRIAGE = T.ID_TRIAGE
+    ORDER BY TR.FECHA_REGISTRO DESC
+) AS PRR
+LEFT JOIN USUARIO M 
+    ON T.ID_MEDICO = M.ID_USUARIO
+WHERE 
+    P.ID_ESTADO = 1        -- Paciente activo
+    AND T.ID_ESTADO = 1    -- Triage activo
+";
 
-            // Agregar condiciones de filtro dinámicamente
             var parameters = new List<SqlParameter>();
 
+            // Filtro por nombre
             if (!string.IsNullOrEmpty(filter?.FullName))
             {
                 query += " AND (P.NOMBRE_US + ' ' + P.APELLIDO_US) LIKE @FullName";
-                parameters.Add( new SqlParameter("@FullName", $"%{filter.FullName}%"));
+                parameters.Add(new SqlParameter("@FullName", $"%{filter.FullName}%"));
             }
 
+            // Filtro por cédula
             if (!string.IsNullOrWhiteSpace(filter?.Identification))
             {
                 query += " AND P.CEDULA_US LIKE @Identification";
                 parameters.Add(new SqlParameter("@Identification", $"%{filter.Identification}%"));
             }
 
-            // Ordenamiento por prioridad y hora
+            // Ordenar por prioridad y hora de llegada
             query += @"
-                ORDER BY 
-                    CASE 
-                        WHEN PRR.COLOR_PRIO = 'Rojo' THEN 1
-                        WHEN PRR.COLOR_PRIO = 'Naranja' THEN 2
-                        WHEN PRR.COLOR_PRIO = 'Amarillo' THEN 3
-                        WHEN PRR.COLOR_PRIO = 'Verde' THEN 4
-                        WHEN PRR.COLOR_PRIO = 'Azul' THEN 5
-                        ELSE 6
-                    END,
-                    T.FECHA_REGISTRO DESC;";
+ORDER BY 
+    CASE 
+        WHEN PRR.COLOR_PRIO = 'Rojo' THEN 1
+        WHEN PRR.COLOR_PRIO = 'Naranja' THEN 2
+        WHEN PRR.COLOR_PRIO = 'Amarillo' THEN 3
+        WHEN PRR.COLOR_PRIO = 'Verde' THEN 4
+        WHEN PRR.COLOR_PRIO = 'Azul' THEN 5
+        ELSE 6
+    END,
+    T.FECHA_REGISTRO DESC;";
 
             try
             {
                 using var connection = _context.OpenConnection();
-                using var command = new SqlCommand(query, (SqlConnection)connection);
-                command.CommandType = CommandType.Text;
+                using var command = new SqlCommand(query, (SqlConnection)connection)
+                {
+                    CommandType = CommandType.Text
+                };
 
                 if (parameters.Count > 0)
-                {
                     command.Parameters.AddRange(parameters.ToArray());
-                }
 
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
@@ -113,12 +115,12 @@ namespace triage_backend.Repositories
             catch (SqlException ex)
             {
                 Console.WriteLine($"[SQL Error] {ex.Message}");
-                throw new Exception("Error al obtener los pacientes desde la base de datos.", ex);
+                throw new Exception("Error al obtener los pacientes activos desde la base de datos.", ex);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[General Error] {ex.Message}");
-                throw;
+                throw new Exception("Error inesperado al consultar la lista de pacientes.", ex);
             }
             finally
             {

@@ -17,7 +17,7 @@ namespace triage_backend.Repositories
         }
 
         /// <summary>
-        /// Gets detailed information about a specific triage.
+        /// Obtiene la información detallada de un triage específico.
         /// </summary>
         public TriageFullInfoDto.TriageDetailsDto? GetTriageDetailsById(int triageId)
         {
@@ -41,12 +41,12 @@ namespace triage_backend.Repositories
                         paciente.NOMBRE_US AS NombrePaciente,
                         paciente.CEDULA_US AS CedulaPaciente,
                         CASE 
-                            WHEN paciente.SEXO_US = 1 THEN 'Masculino'
-                            WHEN paciente.SEXO_US = 0 THEN 'Femenino'
+                            WHEN paciente.Sexo_Us = 1 THEN 'Masculino'
+                            WHEN paciente.Sexo_Us = 0 THEN 'Femenino'
                             ELSE 'No especificado'
                         END AS Sexo,
                         paciente.FECHA_NAC_US AS FechaNacimiento,
-                        t.ID_Triage,
+                        t.ID_TRIAGE,
                         t.SINTOMAS,
                         t.TEMPERATURA AS Temp,
                         t.PRESION_ARTERIAL AS Presion,
@@ -58,13 +58,12 @@ namespace triage_backend.Repositories
                         CONVERT(VARCHAR(5), t.FECHA_REGISTRO, 108) AS HoraTriage
                     FROM TRIAGE t
                     INNER JOIN USUARIO paciente ON paciente.ID_USUARIO = t.ID_PACIENTE
-                    LEFT JOIN UltimaPrioridad up ON up.ID_Triage = t.ID_Triage AND up.rn = 1
+                    LEFT JOIN UltimaPrioridad up ON up.ID_Triage = t.ID_TRIAGE AND up.rn = 1
                     LEFT JOIN PRIORIDAD pr ON pr.ID_PRIORIDAD = up.ID_Prioridad
                     LEFT JOIN USUARIO medico ON medico.ID_USUARIO = up.ID_MedicoTriage
-                    WHERE t.ID_Triage = @TriageID;";
+                    WHERE t.ID_TRIAGE = @TriageID;";
 
-                var param = new SqlParameter("@TriageID", SqlDbType.Int) { Value = triageId };
-                cmd.Parameters.Add(param);
+                cmd.Parameters.Add(new SqlParameter("@TriageID", SqlDbType.Int) { Value = triageId });
 
                 using (var reader = cmd.ExecuteReader())
                 {
@@ -77,7 +76,7 @@ namespace triage_backend.Repositories
                             PatientDocument = reader["CedulaPaciente"]?.ToString() ?? "Sin cédula",
                             Gender = reader["Sexo"]?.ToString() ?? "No especificado",
                             BirthDate = reader["FechaNacimiento"] is DBNull ? null : Convert.ToDateTime(reader["FechaNacimiento"]),
-                            TriageId = reader["ID_Triage"] is DBNull ? 0 : Convert.ToInt32(reader["ID_Triage"]),
+                            TriageId = reader["ID_TRIAGE"] is DBNull ? 0 : Convert.ToInt32(reader["ID_TRIAGE"]),
                             Symptoms = reader["SINTOMAS"]?.ToString() ?? "No especificado",
                             Temperature = reader["Temp"] is DBNull ? null : Convert.ToDecimal(reader["Temp"]),
                             BloodPressure = reader["Presion"]?.ToString() ?? "No registrada",
@@ -96,7 +95,7 @@ namespace triage_backend.Repositories
         }
 
         /// <summary>
-        /// Gets the full medical history of a patient, including diagnoses and treatments.
+        /// Obtiene el historial médico completo de un paciente, incluyendo diagnósticos y tratamientos.
         /// </summary>
         public List<TriageFullInfoDto.PatientHistoryDto> GetPatientHistory(int patientId)
         {
@@ -120,33 +119,36 @@ WITH DatosPrincipales AS (
 ),
 Detalle AS (
     SELECT 
-        dp.*,
-        diag.ID_Diagnostico,
-        diag.NOMBRE_DIAG,
-        diag.OBSERV_DIAG,
-        trat.ID_Tratamiento,
-        trat.Descrip_Trata,
-        ROW_NUMBER() OVER(PARTITION BY dp.ID_CONSULTA ORDER BY diag.ID_Diagnostico, trat.ID_Tratamiento) AS rnFila
+        dp.ID_CONSULTA,
+        dp.ID_HISTORIAL,
+        dp.HoraInicioConsulta,
+        dp.HoraFinConsulta,
+        dp.ID_ESTADO,
+        d.ID_DIAGNOSTICO,
+        d.NOMBRE_DIAG,
+        d.OBSERV_DIAG,
+        t.ID_TRATAMIENTO,
+        t.DESCRIP_TRATA,
+        ROW_NUMBER() OVER(PARTITION BY dp.ID_CONSULTA ORDER BY d.ID_DIAGNOSTICO, t.ID_TRATAMIENTO) AS rnFila
     FROM DatosPrincipales dp
     LEFT JOIN HISTORIAL_DIAGNOSTICO hd ON hd.ID_HISTORIAL = dp.ID_HISTORIAL
-    LEFT JOIN DIAGNOSTICO diag ON diag.ID_Diagnostico = hd.ID_Diagnostico
-    LEFT JOIN DIAGNOSTICO_TRATAMIENTO dt ON dt.ID_Diagnostico = diag.ID_Diagnostico
-    LEFT JOIN TRATAMIENTO trat ON trat.ID_Tratamiento = dt.ID_Tratamiento
+    LEFT JOIN DIAGNOSTICO d ON d.ID_DIAGNOSTICO = hd.ID_DIAGNOSTICO
+    LEFT JOIN DIAGNOSTICO_TRATAMIENTO dt ON dt.ID_DIAGNOSTICO = d.ID_DIAGNOSTICO
+    LEFT JOIN TRATAMIENTO t ON t.ID_TRATAMIENTO = dt.ID_TRATAMIENTO AND t.ID_HISTORIAL = dp.ID_HISTORIAL
 )
 SELECT
     CASE WHEN rnFila = 1 THEN ID_CONSULTA ELSE NULL END AS ID_CONSULTA,
     CASE WHEN rnFila = 1 THEN HoraInicioConsulta ELSE NULL END AS HoraInicioConsulta,
     CASE WHEN rnFila = 1 THEN HoraFinConsulta ELSE NULL END AS HoraFinConsulta,
     CASE WHEN rnFila = 1 THEN ID_ESTADO ELSE NULL END AS ID_ESTADO,
-    ID_Diagnostico,
+    ID_DIAGNOSTICO,
     NOMBRE_DIAG,
     OBSERV_DIAG,
-    ID_Tratamiento,
-    Descrip_Trata
+    ID_TRATAMIENTO,
+    DESCRIP_TRATA
 FROM Detalle
-WHERE ID_Diagnostico IS NOT NULL OR ID_Tratamiento IS NOT NULL
-ORDER BY ID_CONSULTA, rnFila;"
-    ;
+WHERE ID_DIAGNOSTICO IS NOT NULL OR ID_TRATAMIENTO IS NOT NULL
+ORDER BY ID_CONSULTA, rnFila;";
 
                 cmd.Parameters.Add(new SqlParameter("@PacienteID", SqlDbType.Int) { Value = patientId });
 
@@ -160,12 +162,11 @@ ORDER BY ID_CONSULTA, rnFila;"
                             StartTime = reader["HoraInicioConsulta"]?.ToString(),
                             EndTime = reader["HoraFinConsulta"]?.ToString(),
                             StatusId = reader["ID_ESTADO"] is DBNull ? null : Convert.ToInt32(reader["ID_ESTADO"]),
-                            DiagnosisId = reader["ID_Diagnostico"] is DBNull ? null : Convert.ToInt32(reader["ID_Diagnostico"]),
+                            DiagnosisId = reader["ID_DIAGNOSTICO"] is DBNull ? null : Convert.ToInt32(reader["ID_DIAGNOSTICO"]),
                             DiagnosisName = reader["NOMBRE_DIAG"]?.ToString(),
                             DiagnosisObservation = reader["OBSERV_DIAG"]?.ToString(),
-                            TreatmentId = reader["ID_Tratamiento"] is DBNull ? null : Convert.ToInt32(reader["ID_Tratamiento"]),
-                            TreatmentDescription = reader["Descrip_Trata"]?.ToString(),
-                            
+                            TreatmentId = reader["ID_TRATAMIENTO"] is DBNull ? null : Convert.ToInt32(reader["ID_TRATAMIENTO"]),
+                            TreatmentDescription = reader["DESCRIP_TRATA"]?.ToString()
                         };
 
                         list.Add(item);
