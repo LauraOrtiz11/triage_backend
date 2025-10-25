@@ -1,10 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using triage_backend.Services;
+using triage_backend.Utilities;
 
 namespace triage_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
+    [Authorize(Roles = RoleConstants.ADMIN)]
     public class ReportController : ControllerBase
     {
         private readonly IReportService _reportService;
