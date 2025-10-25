@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using triage_backend.Services;
 using triage_backend.Utilities;
 
@@ -10,6 +11,8 @@ namespace triage_backend.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
+    [Authorize(Roles = RoleConstants.NURSE)]
     public class TriagePatientController : ControllerBase
     {
         private readonly ITriagePatientService _triageService;

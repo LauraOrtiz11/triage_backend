@@ -1,11 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using triage_backend.Dtos;
 using triage_backend.Interfaces;
+using triage_backend.Utilities;
 
 namespace triage_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
+    [Authorize(Roles = RoleConstants.DOCTOR)]
     public class ExamController : ControllerBase
     {
         private readonly IExamService _service;
@@ -46,7 +50,7 @@ namespace triage_backend.Controllers
             return Ok(new { Success = true, Data = exam });
         }
     }
-
+    
     public class ExamIdRequest
     {
         public int Id { get; set; }
