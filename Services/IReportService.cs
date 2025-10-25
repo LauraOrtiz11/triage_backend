@@ -1,11 +1,10 @@
-﻿using System;
+﻿using triage_backend.Dtos;
 
 namespace triage_backend.Services
 {
     public interface IReportService
     {
-       
-        byte[] GenerateTriageReport(string generatedBy);
-        string GetReportFileName(string generatedBy);
+        byte[] GenerateTriageReport(string userName, DateTime startDate, DateTime endDate);
+        string GetReportFileName(string userName);
     }
 }

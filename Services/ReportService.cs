@@ -1,235 +1,225 @@
 ﻿using System;
 using System.IO;
-using iText.Kernel.Colors;
-using iText.Kernel.Font;
+using triage_backend.Dtos;
+using triage_backend.Repositories;
+using triage_backend.Utils;
 using iText.Layout;
 using iText.Layout.Element;
 using iText.Layout.Properties;
-using iText.IO.Image;
+using iText.Kernel.Font;
+using iText.IO.Font.Constants;
+using iText.Kernel.Colors;
 using iText.Kernel.Geom;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas;
-using triage_backend.Utils;
+using iText.Layout.Borders;
+using IOPath = System.IO.Path;
 
 namespace triage_backend.Services
 {
     public class ReportService : IReportService
     {
-        private readonly IWebHostEnvironment _webHostEnvironment;
+        private readonly ReportRepository _reportRepository;
 
-        public ReportService(IWebHostEnvironment webHostEnvironment)
+        public ReportService(ReportRepository reportRepository)
         {
-            _webHostEnvironment = webHostEnvironment;
+            _reportRepository = reportRepository;
         }
 
-        public byte[] GenerateTriageReport(string generatedBy)
+        public byte[] GenerateTriageReport(string userName, DateTime startDate, DateTime endDate)
         {
+            var stats = _reportRepository.GetTriageStats(startDate, endDate);
+            var dateRange = $"{startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy}";
+
             return PdfHelper.CreatePdf((doc, pdf) =>
             {
-                
-                // CONFIGURACIÓN DE FUENTES Y COLORES
-                
-                var titleFont = PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA_BOLD);
-                var normalFont = PdfFontFactory.CreateFont(iText.IO.Font.Constants.StandardFonts.HELVETICA);
+                // =================== FUENTES ===================
+                PdfFont fontRegular = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
+                PdfFont fontBold = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+                PdfFont fontItalic = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_OBLIQUE);
 
-                Color primaryColor = new DeviceRgb(80, 139, 199); 
-                Color secondaryColor = new DeviceRgb(230, 242, 255);  
-
-                
-                // ASEGURAR QUE EXISTA UNA PÁGINA
-                
+                // =================== COLORES ===================
+                var softGreen = new DeviceRgb(220, 245, 221);  
+                var headerGreen = new DeviceRgb(184, 232, 187);
+                var darkGreen = new DeviceRgb(0, 100, 0);
+                var grayText = new DeviceRgb(60, 60, 60);
+                var pastelBlue = new DeviceRgb(173, 216, 230);
+                // ====== FONDO DE TODA LA PÁGINA ======
                 if (pdf.GetNumberOfPages() == 0)
                 {
-                    pdf.AddNewPage(PageSize.A4);
+                    pdf.AddNewPage();
                 }
 
-                var pageSize = pdf.GetDefaultPageSize();
-                var canvas = new PdfCanvas(pdf.GetFirstPage());
+                var page = pdf.GetPage(1);
+                var pageSize = page.GetPageSize();
+                var canvas = new PdfCanvas(page);
+                canvas.SaveState()
+                      .SetFillColor(softGreen)
+                      .Rectangle(pageSize.GetLeft(), pageSize.GetBottom(), pageSize.GetWidth(), pageSize.GetHeight())
+                      .Fill()
+                      .RestoreState();
 
-               
 
-                
-                // ENCABEZADO CON LOGO Y TÍTULO
-                var logoPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "logo_triage.jpg");
-                if (!File.Exists(logoPath))
-                    throw new FileNotFoundException($"No se encontró la imagen del logo en: {logoPath}");
 
-                Image logo = new Image(ImageDataFactory.Create(logoPath))
-                    .SetWidth(120)
-                    .SetHeight(70)
-                    .SetHorizontalAlignment(HorizontalAlignment.LEFT);
-
-                Paragraph title = new Paragraph("Reporte de Triage")
-                    .SetFont(titleFont)
-                    .SetFontSize(20)
-                    .SetFontColor(ColorConstants.WHITE)
-                    .SetTextAlignment(TextAlignment.LEFT)
-                    .SetVerticalAlignment(VerticalAlignment.MIDDLE)
-                    .SetMargin(0)
-                    .SetPaddingLeft(15);
-
-                // Crear tabla de 2 columnas (logo y título)
-                Table headerTable = new Table(UnitValue.CreatePercentArray(new float[] { 1, 3 }))
-                    .UseAllAvailableWidth()
-                    .SetMarginTop(10)
-                    .SetMarginBottom(15)
-                    .SetBackgroundColor(primaryColor);
-
-                // Celda del logo
-                Cell logoCell = new Cell().Add(logo)
-                    .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
-                    .SetVerticalAlignment(VerticalAlignment.MIDDLE)
-                    .SetTextAlignment(TextAlignment.LEFT);
-
-                // Celda del título
-                Cell titleCell = new Cell().Add(title)
-                    .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
-                    .SetVerticalAlignment(VerticalAlignment.MIDDLE)
-                    .SetTextAlignment(TextAlignment.LEFT);
-
-                // Agregar las celdas a la tabla
+                // ====== ENCABEZADO (logo izquierda, título derecha) ======
+                var headerTable = new Table(new float[] { 80, 1 }).UseAllAvailableWidth();
+                var logoCell = new Cell().SetBorder(Border.NO_BORDER).SetPaddingRight(10);
+                string imagePath = IOPath.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "logo.png");
+                if (File.Exists(imagePath))
+                {
+                    var img = new iText.Layout.Element.Image(iText.IO.Image.ImageDataFactory.Create(imagePath))
+                        .ScaleToFit(60, 60)
+                        .SetAutoScale(true);
+                    logoCell.Add(img);
+                }
                 headerTable.AddCell(logoCell);
-                headerTable.AddCell(titleCell);
 
+                var titleCell = new Cell().SetBorder(Border.NO_BORDER);
+                var titleBlock = new Paragraph("REPORTE DE TIEMPOS PROMEDIO DE ATENCIÓN")
+                    .SetFont(fontBold)
+                    .SetFontSize(16)
+                    .SetFontColor(darkGreen)
+                    .SetTextAlignment(TextAlignment.LEFT)
+                    .SetMargin(0)
+                    .SetPadding(8)
+                    .SetBackgroundColor(headerGreen);
+                titleCell.Add(titleBlock);
+                headerTable.AddCell(titleCell);
                 doc.Add(headerTable);
 
+                doc.Add(new Paragraph("").SetMarginBottom(12));
 
+                // ====== DATOS GENERALES ======
+                doc.Add(new Paragraph($"Generado por: {userName}")
+                    .SetFont(fontRegular).SetFontColor(grayText).SetFontSize(11).SetMarginBottom(2));
+                doc.Add(new Paragraph($"Fecha y hora de generación: {DateTime.Now:dd/MM/yyyy HH:mm:ss}")
+                    .SetFont(fontRegular).SetFontColor(grayText).SetFontSize(11).SetMarginBottom(2));
+                doc.Add(new Paragraph($"Rango de fechas analizado: {dateRange}")
+                    .SetFont(fontRegular).SetFontColor(grayText).SetFontSize(11).SetMarginBottom(10));
 
-
-                // INFORMACIÓN DE GENERACIÓN
-
-                Paragraph info = new Paragraph(
-                    $"Fecha de generación: {DateTime.Now:dd/MM/yyyy HH:mm:ss}\n" +
-                    $"Generado por: {generatedBy}")
-                    .SetFont(normalFont)
-                    .SetFontSize(10)
-                    .SetFontColor(ColorConstants.DARK_GRAY)
-                    .SetTextAlignment(TextAlignment.RIGHT)
-                    .SetMarginTop(20)
-                    .SetMarginBottom(15);
-
-                doc.Add(info);
-
-                
-                // TABLA DE ACTIVIDAD
-                
-                doc.Add(new Paragraph("Resumen de Actividad del Personal de Enfermería")
-                    .SetFont(titleFont)
-                    .SetFontSize(13)
-                    .SetFontColor(primaryColor)
-                    .SetMarginBottom(8));
-
-                string[] headers = {
-                    "Enfermero",
-                    "Duración Promedio (min)",
-                    "Pacientes Atendidos",
-                    "Duración Total (min)"
-                };
-
-                string[,] mockData =
+                // ====== MENSAJE SIN DATOS ======
+                if (stats.AvgWaitTime == 0 && stats.AvgAttentionTime == 0 && stats.TotalTriageTime == 0)
                 {
-                    { "Enf. Camila Ruiz", "8.5", "18", (8.5 * 18).ToString("0.0") },
-                    { "Enf. Carlos Mejía", "9.2", "22", (9.2 * 22).ToString("0.0") },
-                    { "Enf. Diana López", "7.8", "25", (7.8 * 25).ToString("0.0") },
-                    { "Enf. Felipe Castro", "10.0", "16", (10.0 * 16).ToString("0.0") },
-                    { "Enf. Andrea Gómez", "8.9", "20", (8.9 * 20).ToString("0.0") }
-                };
-
-                Table table = new Table(UnitValue.CreatePercentArray(headers.Length)).UseAllAvailableWidth();
-
-                // Encabezados
-                foreach (var h in headers)
-                {
-                    table.AddHeaderCell(new Cell().Add(new Paragraph(h)
-                        .SetFont(titleFont)
-                        .SetFontColor(ColorConstants.WHITE)
-                        .SetTextAlignment(TextAlignment.CENTER)
-                        .SetFontSize(10))
-                        .SetBackgroundColor(primaryColor)
-                        .SetPadding(5));
+                    doc.Add(new Paragraph("No existen datos disponibles para el rango seleccionado.")
+                        .SetFont(fontBold).SetFontColor(new DeviceRgb(150, 0, 0))
+                        .SetFontSize(12).SetTextAlignment(TextAlignment.CENTER));
+                    DrawFooter(doc, pdf, darkGreen, fontItalic);
+                    return;
                 }
 
-                // Filas
-                for (int i = 0; i < mockData.GetLength(0); i++)
-                {
-                    Color rowColor = (i % 2 == 0) ? secondaryColor : ColorConstants.WHITE;
+                // ====== TABLA ======
+                var table = new Table(new float[] { 3, 1 })
+                    .UseAllAvailableWidth()
+                    .SetMarginTop(10)
+                    .SetMarginBottom(16);
 
-                    for (int j = 0; j < mockData.GetLength(1); j++)
-                    {
-                        table.AddCell(new Cell().Add(new Paragraph(mockData[i, j])
-                            .SetFont(normalFont)
-                            .SetFontSize(10)
-                            .SetTextAlignment(TextAlignment.CENTER))
-                            .SetBackgroundColor(rowColor)
-                            .SetPadding(5));
-                    }
-                }
+                table.AddHeaderCell(HeaderCell("Indicador", pastelBlue, fontBold));
+                table.AddHeaderCell(HeaderCell("Valor (min)", pastelBlue, fontBold));
+
+                table.AddCell(MetricCell("Tiempo promedio de espera antes de ser atendido", fontRegular));
+                table.AddCell(ValueCell(stats.AvgWaitTime, fontRegular));
+
+                table.AddCell(MetricCell("Tiempo promedio de duración de la atención", fontRegular));
+                table.AddCell(ValueCell(stats.AvgAttentionTime, fontRegular));
+
+                table.AddCell(MetricCell("Tiempo total promedio del proceso de triage", fontRegular));
+                table.AddCell(ValueCell(stats.TotalTriageTime, fontRegular));
 
                 doc.Add(table);
 
-                
-                // GRÁFICA DE BARRAS SIMULADA
+                // ====== GRÁFICO DE BARRAS ======
+                doc.Add(new Paragraph("Visualización comparativa de tiempos")
+                    .SetFont(fontBold).SetFontSize(12).SetMarginBottom(8).SetTextAlignment(TextAlignment.CENTER));
 
-                doc.Add(new Paragraph("\nDuración Promedio por Enfermero (minutos)")
-                    .SetFont(titleFont)
-                    .SetFontSize(12)
-                    .SetFontColor(primaryColor)
-                    .SetMarginTop(20)
-                    .SetTextAlignment(TextAlignment.LEFT));
+                var chart = new Table(new float[] { 3, 1, 5 }).UseAllAvailableWidth().SetBorder(Border.NO_BORDER);
+                double max = Math.Max(stats.AvgWaitTime, Math.Max(stats.AvgAttentionTime, stats.TotalTriageTime));
+                if (max <= 0) max = 1;
 
-                float startX = 60;
-                float startY = 300;
-                float barHeight = 12;
-                float maxBarWidth = 300;
-
-                string[] enfermeros = { "C. Ruiz", "C. Mejía", "D. López", "F. Castro", "A. Gómez" };
-                double[] valores = { 8.5, 9.2, 7.8, 10.0, 8.9 };
-                double maxValue = 10.0;
-
-                for (int i = 0; i < valores.Length; i++)
+                void AddBar(string label, double value, DeviceRgb color)
                 {
-                    float barWidth = (float)(valores[i] / maxValue * maxBarWidth);
+                    chart.AddCell(new Cell().Add(new Paragraph(label).SetFont(fontRegular).SetFontSize(10))
+                        .SetBorder(Border.NO_BORDER).SetPadding(2));
+                    chart.AddCell(new Cell().Add(new Paragraph($"{value:F2}"))
+                        .SetTextAlignment(TextAlignment.RIGHT).SetFont(fontRegular)
+                        .SetFontSize(10).SetBorder(Border.NO_BORDER).SetPadding(6));
 
-                    canvas.SaveState()
-                          .SetFillColor(primaryColor)
-                          .Rectangle(startX, startY - i * 25, barWidth, barHeight)
-                          .Fill()
-                          .RestoreState();
+                    // barra más grande
+                    float percent = (float)(value / max * 100.0);
+                    var barContainer = new Div()
+                        .SetBackgroundColor(new DeviceRgb(230, 230, 230))
+                        .SetHeight(25) // <-- altura aumentada
+                        .SetWidth(UnitValue.CreatePercentValue(100))
+                        .SetBorder(new SolidBorder(ColorConstants.WHITE, 0.5f));
 
-                    doc.Add(new Paragraph($"{enfermeros[i]}: {valores[i]} min")
-                        .SetFont(normalFont)
-                        .SetFontSize(9)
-                        .SetFixedPosition(startX + barWidth + 10, startY - i * 25, 200)
-                        .SetFontColor(ColorConstants.DARK_GRAY));
+                    var bar = new Div()
+                        .SetBackgroundColor(color)
+                        .SetHeight(25) // <-- altura aumentada
+                        .SetWidth(UnitValue.CreatePercentValue(percent));
+
+                    barContainer.Add(bar);
+                    chart.AddCell(new Cell().Add(barContainer).SetBorder(Border.NO_BORDER).SetPaddingTop(5).SetPaddingBottom(5));
                 }
 
+                AddBar("Espera promedio", stats.AvgWaitTime, new DeviceRgb(122, 186, 120));
+                AddBar("Duración promedio", stats.AvgAttentionTime, new DeviceRgb(83, 160, 81));
+                AddBar("Total triage", stats.TotalTriageTime, new DeviceRgb(50, 120, 50));
 
-                // PIE DE PÁGINA 
-                float pageBottom = 30; // distancia desde el borde inferior
-                float pageCenter = pdf.GetDefaultPageSize().GetWidth() / 2;
+                doc.Add(chart);
+                doc.Add(new Paragraph("").SetMarginTop(20));
 
-                Paragraph footer = new Paragraph("Reporte generado automáticamente por Intelligent Triage © 2025")
-                    .SetFont(normalFont)
-                    .SetFontSize(9)
-                    .SetFontColor(ColorConstants.GRAY)
-                    .SetTextAlignment(TextAlignment.CENTER);
-
-                // Agregar el texto en posición absoluta
-                new iText.Layout.Canvas(
-                    new iText.Kernel.Pdf.Canvas.PdfCanvas(pdf.GetFirstPage()),
-                    pdf.GetDefaultPageSize())
-                    .ShowTextAligned(footer, pageCenter, pageBottom, iText.Layout.Properties.TextAlignment.CENTER);
-
+                // ====== PIE DE PÁGINA ======
+                DrawFooter(doc, pdf, darkGreen, fontItalic);
             });
         }
 
-        /// <summary>
-        /// Retorna el nombre del archivo PDF con el nombre del usuario.
-        /// </summary>
-        public string GetReportFileName(string generatedBy)
+        // --- Helpers de tabla y footer ---
+        private static Cell HeaderCell(string text, DeviceRgb bg, PdfFont font)
         {
-            string safeName = generatedBy.Replace(" ", "_");
-            return $"Reporte_Triage_{safeName}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+            return new Cell().Add(new Paragraph(text).SetFont(font))
+                .SetBackgroundColor(bg)
+                .SetFontColor(ColorConstants.BLACK)
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetPadding(6);
+        }
+
+        private static Cell MetricCell(string text, PdfFont font)
+        {
+            return new Cell().Add(new Paragraph(text).SetFont(font))
+                .SetTextAlignment(TextAlignment.LEFT)
+                .SetPadding(6);
+        }
+
+        private static Cell ValueCell(double value, PdfFont font)
+        {
+            return new Cell().Add(new Paragraph(value.ToString("F2")).SetFont(font))
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetPadding(6);
+        }
+
+        private static void DrawFooter(Document doc, PdfDocument pdf, DeviceRgb lineColor, PdfFont italicFont)
+        {
+            var pageNum = pdf.GetNumberOfPages();
+            var page = pdf.GetPage(pageNum);
+            Rectangle ps = page.GetPageSize();
+            var canvas = new PdfCanvas(page);
+            canvas.SetStrokeColor(lineColor)
+                  .SetLineWidth(1)
+                  .MoveTo(ps.GetLeft() + 36, ps.GetBottom() + 36)
+                  .LineTo(ps.GetRight() - 36, ps.GetBottom() + 36)
+                  .Stroke();
+
+            var footer = new Paragraph("Reporte generado automáticamente por el sistema Intelligent Triage")
+                .SetFont(italicFont)
+                .SetFontSize(9)
+                .SetFontColor(lineColor);
+
+            doc.ShowTextAligned(footer, ps.GetWidth() / 2, ps.GetBottom() + 26, pageNum,
+                TextAlignment.CENTER, VerticalAlignment.BOTTOM, 0);
+        }
+
+        public string GetReportFileName(string userName)
+        {
+            return $"Reporte_Triage_{userName}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
         }
     }
 }
