@@ -1,9 +1,10 @@
-﻿using System;
+﻿using Microsoft.Data.SqlClient;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using Microsoft.Data.SqlClient;
 using triage_backend.Dtos;
 using triage_backend.Utilities;
+using static triage_backend.Dtos.TriageFullInfoDto;
 
 namespace triage_backend.Repositories
 {
@@ -97,9 +98,10 @@ namespace triage_backend.Repositories
         /// <summary>
         /// Obtiene el historial médico completo de un paciente, incluyendo diagnósticos y tratamientos.
         /// </summary>
-        public List<TriageFullInfoDto.PatientHistoryDto> GetPatientHistory(int patientId)
+      
+        public List<PatientHistoryDto> GetPatientHistory(int patientId)
         {
-            var list = new List<TriageFullInfoDto.PatientHistoryDto>();
+            var list = new List<PatientHistoryDto>();
 
             using (var conn = _context.OpenConnection())
             using (var cmd = conn.CreateCommand())
@@ -124,17 +126,30 @@ Detalle AS (
         dp.HoraInicioConsulta,
         dp.HoraFinConsulta,
         dp.ID_ESTADO,
-        d.ID_DIAGNOSTICO,
-        d.NOMBRE_DIAG,
-        d.OBSERV_DIAG,
-        t.ID_TRATAMIENTO,
-        t.DESCRIP_TRATA,
-        ROW_NUMBER() OVER(PARTITION BY dp.ID_CONSULTA ORDER BY d.ID_DIAGNOSTICO, t.ID_TRATAMIENTO) AS rnFila
+        diag.ID_DIAGNOSTICO,
+        diag.NOMBRE_DIAG,
+        diag.OBSERV_DIAG,
+        trat.ID_TRATAMIENTO,
+        trat.DESCRIP_TRATA,
+        exam.ID_EXAMEN,
+        exam.NOMBRE_EXAM,
+        exam.DESCRIP_EXAM,
+        med.ID_MEDICAMENTO,
+        med.NOMBRE_MEDICA,
+        med.DESCRIP_MEDICA,
+        med.PROVEEDOR_MEDICA,
+        ROW_NUMBER() OVER(
+            PARTITION BY dp.ID_CONSULTA 
+            ORDER BY diag.ID_DIAGNOSTICO, trat.ID_TRATAMIENTO, exam.ID_EXAMEN, med.ID_MEDICAMENTO
+        ) AS rnFila
     FROM DatosPrincipales dp
     LEFT JOIN HISTORIAL_DIAGNOSTICO hd ON hd.ID_HISTORIAL = dp.ID_HISTORIAL
-    LEFT JOIN DIAGNOSTICO d ON d.ID_DIAGNOSTICO = hd.ID_DIAGNOSTICO
-    LEFT JOIN DIAGNOSTICO_TRATAMIENTO dt ON dt.ID_DIAGNOSTICO = d.ID_DIAGNOSTICO
-    LEFT JOIN TRATAMIENTO t ON t.ID_TRATAMIENTO = dt.ID_TRATAMIENTO AND t.ID_HISTORIAL = dp.ID_HISTORIAL
+    LEFT JOIN DIAGNOSTICO diag ON diag.ID_DIAGNOSTICO = hd.ID_DIAGNOSTICO
+    LEFT JOIN TRATAMIENTO trat ON trat.ID_HISTORIAL = dp.ID_HISTORIAL
+    LEFT JOIN TRATAMIENTO_EXAMEN te ON te.ID_TRATAMIENTO = trat.ID_TRATAMIENTO
+    LEFT JOIN EXAMEN exam ON exam.ID_EXAMEN = te.ID_EXAMEN
+    LEFT JOIN TRATAMIENTO_MEDICAMENTO tm ON tm.ID_TRATAMIENTO = trat.ID_TRATAMIENTO
+    LEFT JOIN MEDICAMENTO med ON med.ID_MEDICAMENTO = tm.ID_MEDICAMENTO
 )
 SELECT
     CASE WHEN rnFila = 1 THEN ID_CONSULTA ELSE NULL END AS ID_CONSULTA,
@@ -145,10 +160,22 @@ SELECT
     NOMBRE_DIAG,
     OBSERV_DIAG,
     ID_TRATAMIENTO,
-    DESCRIP_TRATA
+    DESCRIP_TRATA,
+    ID_EXAMEN,
+    NOMBRE_EXAM,
+    DESCRIP_EXAM,
+    ID_MEDICAMENTO,
+    NOMBRE_MEDICA,
+    DESCRIP_MEDICA,
+    PROVEEDOR_MEDICA
 FROM Detalle
-WHERE ID_DIAGNOSTICO IS NOT NULL OR ID_TRATAMIENTO IS NOT NULL
-ORDER BY ID_CONSULTA, rnFila;";
+WHERE 
+    ID_DIAGNOSTICO IS NOT NULL 
+    OR ID_TRATAMIENTO IS NOT NULL
+    OR ID_EXAMEN IS NOT NULL
+    OR ID_MEDICAMENTO IS NOT NULL
+ORDER BY ID_CONSULTA, rnFila;
+";
 
                 cmd.Parameters.Add(new SqlParameter("@PacienteID", SqlDbType.Int) { Value = patientId });
 
@@ -156,17 +183,28 @@ ORDER BY ID_CONSULTA, rnFila;";
                 {
                     while (reader.Read())
                     {
-                        var item = new TriageFullInfoDto.PatientHistoryDto
+                        var item = new PatientHistoryDto
                         {
                             ConsultationId = reader["ID_CONSULTA"] is DBNull ? null : Convert.ToInt32(reader["ID_CONSULTA"]),
-                            StartTime = reader["HoraInicioConsulta"]?.ToString(),
-                            EndTime = reader["HoraFinConsulta"]?.ToString(),
+                            StartTime = reader["HoraInicioConsulta"]?.ToString() ?? "No aplica",
+                            EndTime = reader["HoraFinConsulta"]?.ToString() ?? "No aplica",
                             StatusId = reader["ID_ESTADO"] is DBNull ? null : Convert.ToInt32(reader["ID_ESTADO"]),
+
                             DiagnosisId = reader["ID_DIAGNOSTICO"] is DBNull ? null : Convert.ToInt32(reader["ID_DIAGNOSTICO"]),
-                            DiagnosisName = reader["NOMBRE_DIAG"]?.ToString(),
-                            DiagnosisObservation = reader["OBSERV_DIAG"]?.ToString(),
+                            DiagnosisName = reader["NOMBRE_DIAG"]?.ToString() ?? "No aplica",
+                            DiagnosisObservation = reader["OBSERV_DIAG"]?.ToString() ?? "No aplica",
+
                             TreatmentId = reader["ID_TRATAMIENTO"] is DBNull ? null : Convert.ToInt32(reader["ID_TRATAMIENTO"]),
-                            TreatmentDescription = reader["DESCRIP_TRATA"]?.ToString()
+                            TreatmentDescription = reader["DESCRIP_TRATA"]?.ToString() ?? "No aplica",
+
+                            ExamId = reader["ID_EXAMEN"] is DBNull ? null : Convert.ToInt32(reader["ID_EXAMEN"]),
+                            ExamName = reader["NOMBRE_EXAM"]?.ToString() ?? "No aplica",
+                            ExamDescription = reader["DESCRIP_EXAM"]?.ToString() ?? "No aplica",
+
+                            MedicationId = reader["ID_MEDICAMENTO"] is DBNull ? null : Convert.ToInt32(reader["ID_MEDICAMENTO"]),
+                            MedicationName = reader["NOMBRE_MEDICA"]?.ToString() ?? "No aplica",
+                            MedicationDescription = reader["DESCRIP_MEDICA"]?.ToString() ?? "No aplica",
+                            MedicationProvider = reader["PROVEEDOR_MEDICA"]?.ToString() ?? "No aplica"
                         };
 
                         list.Add(item);
@@ -176,5 +214,6 @@ ORDER BY ID_CONSULTA, rnFila;";
 
             return list;
         }
+
     }
 }
