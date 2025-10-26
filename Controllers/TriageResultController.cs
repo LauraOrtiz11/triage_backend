@@ -28,21 +28,7 @@ namespace triage_backend.Controllers
         /// <summary>
         /// Registra (inserta) el resultado final del triaje confirmado o ajustado por el enfermero.
         /// </summary>
-        /// <remarks>
-        /// Ejemplo de request JSON:
-        /// 
-        ///     POST /api/TriageResult/register
-        ///     {
-        ///       "TriageId": 12,
-        ///       "PriorityId": 3,
-        ///       "NurseId": 8,
-        ///       "IsFinalPriority": true
-        ///     }
-        /// 
-        /// El endpoint:
-        /// - Inserta un nuevo registro en TRIAGE_RESULTADO con Es_Prioridad_Final = 1.
-        /// - Marca cualquier registro previo para el mismo triaje como Es_Prioridad_Final = 0.
-        /// </remarks>
+   
         /// <param name="result">DTO con los datos del resultado de triaje (en body).</param>
         /// <returns>Objeto con success y message.</returns>
         /// <response code="200">Resultado registrado exitosamente.</response>
