@@ -27,13 +27,26 @@
             public string? StartTime { get; set; }
             public string? EndTime { get; set; }
             public int? StatusId { get; set; }
+
+            // Diagnóstico
             public int? DiagnosisId { get; set; }
             public string? DiagnosisName { get; set; }
             public string? DiagnosisObservation { get; set; }
+
+            // Tratamiento
             public int? TreatmentId { get; set; }
             public string? TreatmentDescription { get; set; }
-            public string? TreatmentObservation { get; set; }
-            public string? TreatmentDose { get; set; }
+
+            // Examen
+            public int? ExamId { get; set; }
+            public string? ExamName { get; set; }
+            public string? ExamDescription { get; set; }
+
+            // Medicamento
+            public int? MedicationId { get; set; }
+            public string? MedicationName { get; set; }
+            public string? MedicationDescription { get; set; }
+            public string? MedicationProvider { get; set; }
         }
     }
 }
