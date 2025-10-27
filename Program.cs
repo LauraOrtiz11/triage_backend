@@ -63,7 +63,7 @@ builder.Services.AddScoped<ITriageRepository, TriageRepository>();
 // Triage Result Nurse (Confirmación de triaje por enfermero)
 builder.Services.AddScoped<TriageResultRepository>();
 builder.Services.AddScoped<ITriageResultService, TriageResultService>();
-    
+
 // Tratamiento
 builder.Services.AddScoped<TreatmentRepository>();
 builder.Services.AddScoped<ITreatmentService, TreatmentService>();
@@ -171,13 +171,13 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = @"API del sistema de triaje inteligente para apaoyar el sisttema de urgencias.  
         Permite la clasificación automática y validación manual de pacientes mediante IA y personal médico.  
-        **Repositorio en GitHub:** [Ir al proyecto](https://github.com/LauraOrtiz11/triage_backend)",
+        *Repositorio en GitHub:* [Ir al proyecto](https://github.com/LauraOrtiz11/triage_backend)",
         Contact = new OpenApiContact
         {
             Name = "Equipo de Desarrollo - Proyecto Triage",
             Url = new Uri("https://github.com/LauraOrtiz11/triage_backend")
         },
-       
+
     });
 
     // Configurar JWT en Swagger
@@ -225,7 +225,7 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Triage API v1");
         c.DocumentTitle = "Triage API Documentation";
-        c.InjectStylesheet("/swagger-ui/custom.css"); 
+        c.InjectStylesheet("/swagger-ui/custom.css");
     });
 }
 
@@ -234,5 +234,7 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.UseStaticFiles();
+
 
 app.Run();
