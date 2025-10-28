@@ -41,7 +41,7 @@ namespace triage_backend.Controllers
         [HttpPost("add-diagnosis")]
         public async Task<IActionResult> AddDiagnosisToHistory([FromBody] HistoryDiagnosisRequest request)
         {
-            if (request == null || request.HistoryId <= 0 || request.DiagnosisId <= 0)
+            if (request == null || request.ConsultationId <= 0 || request.DiagnosisId <= 0)
                 return BadRequest(new { message = "Tanto el ID Diagnóstico y el ID Historia son requeridos." });
 
             bool result = await _historyService.AddDiagnosisToHistoryAsync(request);

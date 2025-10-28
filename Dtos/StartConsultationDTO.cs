@@ -2,7 +2,8 @@
 {
     public class StartConsultationDto
     {
-        public int IdTriage { get; set; }
         public int IdMedic { get; set; }
+        public int IdTriage { get; set; }
     }
+
 }

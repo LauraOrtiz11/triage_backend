@@ -21,7 +21,7 @@ namespace triage_backend.Controllers
         [HttpPost("register")]
         public IActionResult RegisterTreatment([FromBody] TreatmentRequestDto request)
         {
-            if (request == null || request.IdHistory <= 0 || string.IsNullOrWhiteSpace(request.Description))
+            if (request == null || request.ConsultationId <= 0 || string.IsNullOrWhiteSpace(request.Description))
                 return BadRequest(new { Success = false, Message = "Debe ingresar el historial y la descripción del tratamiento." });
 
             var id = _service.RegisterTreatment(request);

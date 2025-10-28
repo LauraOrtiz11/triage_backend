@@ -2,9 +2,9 @@
 {
     public class TreatmentRequestDto
     {
-        public int IdHistory { get; set; }       
-        public string? Description { get; set; }    
-        public List<int>? MedicationIds { get; set; }  
+        public string? Description { get; set; }
+        public int ConsultationId { get; set; }          
+        public List<int>? MedicationIds { get; set; }
         public List<int>? ExamIds { get; set; }
     }
 }
