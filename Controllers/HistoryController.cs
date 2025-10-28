@@ -1,7 +1,7 @@
-﻿
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using triage_backend.Dtos;
 using triage_backend.Services;
+using triage_backend.Interfaces;
 
 namespace triage_backend.Controllers
 {
@@ -16,7 +16,10 @@ namespace triage_backend.Controllers
             _historyService = historyService;
         }
 
-        // 🔹 Get History by Patient Document
+        /// <summary>
+        /// Usando el documento de identidad del paciente, obtiene el ID de la historia médica que le corresponde.
+        /// </summary>
+
         [HttpPost("get-by-document")]
         public async Task<IActionResult> GetHistoryByDocument([FromBody] PatientDocumentRequest request)
         {
@@ -31,7 +34,10 @@ namespace triage_backend.Controllers
             return Ok(history);
         }
 
-        // 🔹 Add Diagnosis to a History
+        /// <summary>
+        /// Añade un diagnóstico a un historial médico.
+        /// </summary>
+
         [HttpPost("add-diagnosis")]
         public async Task<IActionResult> AddDiagnosisToHistory([FromBody] HistoryDiagnosisRequest request)
         {
@@ -41,9 +47,9 @@ namespace triage_backend.Controllers
             bool result = await _historyService.AddDiagnosisToHistoryAsync(request);
 
             if (!result)
-                return Conflict(new { message = "This diagnosis is already registered for the selected history." });
+                return Conflict(new { message = "Este diagnóstico ya fue registrado en la historia clínica" });
 
-            return Ok(new { message = "Diagnosis successfully registered to history." });
+            return Ok(new { message = "Diagnostico registrado exitosamente." });
         }
     }
 }

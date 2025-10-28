@@ -172,9 +172,6 @@ WHERE ID_PRIORIDAD = @Prio
             return $"turno-{initial}{pos}";
         }
 
-        public Task<int> InsertTriageAsync(TriageRequestDto request, string suggestedLevel, int ID_Patient, int ID_Doctor, int ID_Nurse, int ID_Priority, int ID_State, int PatientAge)
-        {
-            throw new NotImplementedException();
-        }
+
     }
 }

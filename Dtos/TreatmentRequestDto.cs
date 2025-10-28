@@ -2,8 +2,9 @@
 {
     public class TreatmentRequestDto
     {
-        public int IdDiagnosis { get; set; } // ID del diagnóstico
-        public string? Description { get; set; } // Texto del tratamiento
-        public List<int>? MedicationIds { get; set; } // IDs de medicamentos asociados
+        public int IdHistory { get; set; }       
+        public string? Description { get; set; }    
+        public List<int>? MedicationIds { get; set; }  
+        public List<int>? ExamIds { get; set; }
     }
 }

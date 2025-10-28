@@ -13,7 +13,7 @@ namespace triage_backend.Services
             _repository = repository;
         }
 
-        public bool RegisterTreatment(TreatmentRequestDto request)
+        public int RegisterTreatment(TreatmentRequestDto request)
         {
             return _repository.RegisterTreatment(request);
         }

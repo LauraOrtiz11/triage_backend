@@ -1,6 +1,4 @@
-﻿
-using Microsoft.Extensions.Configuration;
-using System.Data;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Data.SqlClient;
 using triage_backend.Dtos;
 
@@ -14,42 +12,38 @@ namespace triage_backend.Services
 
     public class DiagnosisService : IDiagnosisService
     {
-        private readonly IConfiguration _config;
+        private readonly string _connectionString;
 
         public DiagnosisService(IConfiguration config)
         {
-            _config = config;
+            // ✅ Garantiza que nunca sea null
+            _connectionString = config.GetConnectionString("DefaultConnection") ?? string.Empty;
         }
 
         public async Task<DiagnosisDto?> GetDiagnosisByIdAsync(int id)
         {
-            string connectionString = _config.GetConnectionString("DefaultConnection");
+            if (id <= 0) return null;
 
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            using var connection = new SqlConnection(_connectionString);
+            const string query = @"
+                SELECT ID_DIAGNOSTICO, NOMBRE_DIAG, OBSERV_DIAG
+                FROM DIAGNOSTICO
+                WHERE ID_DIAGNOSTICO = @DiagnosisId";
+
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@DiagnosisId", id);
+
+            await connection.OpenAsync();
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
             {
-                string query = @"SELECT ID_DIAGNOSTICO, NOMBRE_DIAG, OBSERV_DIAG
-                                 FROM DIAGNOSTICO
-                                 WHERE ID_DIAGNOSTICO = @DiagnosisId";
-
-                using (SqlCommand command = new SqlCommand(query, connection))
+                return new DiagnosisDto
                 {
-                    command.Parameters.AddWithValue("@DiagnosisId", id);
-
-                    await connection.OpenAsync();
-
-                    using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                    {
-                        if (await reader.ReadAsync())
-                        {
-                            return new DiagnosisDto
-                            {
-                                DiagnosisId = reader.GetInt32(reader.GetOrdinal("ID_DIAGNOSTICO")),
-                                DiagnosisName = reader["NOMBRE_DIAG"].ToString(),
-                                DiagnosisNotes = reader["OBSERV_DIAG"].ToString()
-                            };
-                        }
-                    }
-                }
+                    DiagnosisId = reader.GetInt32(reader.GetOrdinal("ID_DIAGNOSTICO")),
+                    DiagnosisName = reader["NOMBRE_DIAG"]?.ToString() ?? string.Empty,
+                    DiagnosisNotes = reader["OBSERV_DIAG"]?.ToString() ?? string.Empty
+                };
             }
 
             return null;
@@ -58,29 +52,22 @@ namespace triage_backend.Services
         public async Task<List<DiagnosisDto>> GetAllDiagnosesAsync()
         {
             var diagnoses = new List<DiagnosisDto>();
-            string connectionString = _config.GetConnectionString("DefaultConnection");
 
-            using (SqlConnection connection = new SqlConnection(connectionString))
+            using var connection = new SqlConnection(_connectionString);
+            const string query = @"SELECT ID_DIAGNOSTICO, NOMBRE_DIAG, OBSERV_DIAG FROM DIAGNOSTICO";
+
+            using var command = new SqlCommand(query, connection);
+            await connection.OpenAsync();
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
-                string query = @"SELECT ID_DIAGNOSTICO, NOMBRE_DIAG, OBSERV_DIAG FROM DIAGNOSTICO";
-
-                using (SqlCommand command = new SqlCommand(query, connection))
+                diagnoses.Add(new DiagnosisDto
                 {
-                    await connection.OpenAsync();
-
-                    using (SqlDataReader reader = await command.ExecuteReaderAsync())
-                    {
-                        while (await reader.ReadAsync())
-                        {
-                            diagnoses.Add(new DiagnosisDto
-                            {
-                                DiagnosisId = reader.GetInt32(reader.GetOrdinal("ID_DIAGNOSTICO")),
-                                DiagnosisName = reader["NOMBRE_DIAG"].ToString(),
-                                DiagnosisNotes = reader["OBSERV_DIAG"].ToString()
-                            });
-                        }
-                    }
-                }
+                    DiagnosisId = reader.GetInt32(reader.GetOrdinal("ID_DIAGNOSTICO")),
+                    DiagnosisName = reader["NOMBRE_DIAG"]?.ToString() ?? string.Empty,
+                    DiagnosisNotes = reader["OBSERV_DIAG"]?.ToString() ?? string.Empty
+                });
             }
 
             return diagnoses;

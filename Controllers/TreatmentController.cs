@@ -15,17 +15,25 @@ namespace triage_backend.Controllers
             _service = service;
         }
 
+        /// <summary>
+        /// Registra un nuevo tratamiento con medicamentos y exámenes asociados.
+        /// </summary>
         [HttpPost("register")]
         public IActionResult RegisterTreatment([FromBody] TreatmentRequestDto request)
         {
-            if (request == null || request.IdDiagnosis <= 0 || string.IsNullOrWhiteSpace(request.Description))
-                return BadRequest(new { Success = false, Message = "Debe ingresar el diagnóstico y la descripción del tratamiento." });
+            if (request == null || request.IdHistory <= 0 || string.IsNullOrWhiteSpace(request.Description))
+                return BadRequest(new { Success = false, Message = "Debe ingresar el historial y la descripción del tratamiento." });
 
-            var ok = _service.RegisterTreatment(request);
-            if (!ok)
+            var id = _service.RegisterTreatment(request);
+            if (id <= 0)
                 return StatusCode(500, new { Success = false, Message = "Error al registrar el tratamiento en la base de datos." });
 
-            return Ok(new { Success = true, Message = "Tratamiento registrado exitosamente." });
+            return Ok(new
+            {
+                Success = true,
+                Message = "Tratamiento registrado exitosamente.",
+                IdTreatment = id
+            });
         }
     }
 }
