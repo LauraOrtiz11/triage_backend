@@ -96,9 +96,8 @@ namespace triage_backend.Repositories
         }
 
         /// <summary>
-        /// Obtiene el historial médico completo de un paciente, incluyendo diagnósticos y tratamientos.
+        /// Obtiene el historial médico completo de un paciente, incluyendo consultas, diagnósticos y tratamientos.
         /// </summary>
-      
         public List<PatientHistoryDto> GetPatientHistory(int patientId)
         {
             var list = new List<PatientHistoryDto>();
@@ -110,19 +109,17 @@ namespace triage_backend.Repositories
 WITH DatosPrincipales AS (
     SELECT 
         c.ID_CONSULTA,
-        c.ID_HISTORIAL,
+        h.ID_HISTORIAL,
         CONVERT(VARCHAR(5), c.FECHA_INICIO_CONSULTA, 108) AS HoraInicioConsulta,
         CONVERT(VARCHAR(5), c.FECHA_FIN_CONSULTA, 108) AS HoraFinConsulta,
         c.ID_ESTADO
     FROM CONSULTA c
-    WHERE c.ID_HISTORIAL IN (
-        SELECT ID_HISTORIAL FROM HISTORIAL WHERE ID_PACIENTE = @PacienteID
-    )
+    INNER JOIN HISTORIAL h ON h.ID_HISTORIAL = c.ID_HISTORIAL
+    WHERE h.ID_PACIENTE = @PacienteID
 ),
 Detalle AS (
     SELECT 
         dp.ID_CONSULTA,
-        dp.ID_HISTORIAL,
         dp.HoraInicioConsulta,
         dp.HoraFinConsulta,
         dp.ID_ESTADO,
@@ -140,12 +137,12 @@ Detalle AS (
         med.PROVEEDOR_MEDICA,
         ROW_NUMBER() OVER(
             PARTITION BY dp.ID_CONSULTA 
-            ORDER BY diag.ID_DIAGNOSTICO, trat.ID_TRATAMIENTO, exam.ID_EXAMEN, med.ID_MEDICAMENTO
+            ORDER BY diag.ID_DIAGNOSTICO, trat.ID_TRATAMIENTO
         ) AS rnFila
     FROM DatosPrincipales dp
-    LEFT JOIN HISTORIAL_DIAGNOSTICO hd ON hd.ID_HISTORIAL = dp.ID_HISTORIAL
-    LEFT JOIN DIAGNOSTICO diag ON diag.ID_DIAGNOSTICO = hd.ID_DIAGNOSTICO
-    LEFT JOIN TRATAMIENTO trat ON trat.ID_HISTORIAL = dp.ID_HISTORIAL
+    LEFT JOIN CONSULTA_DIAGNOSTICO cd ON cd.ID_CONSULTA = dp.ID_CONSULTA
+    LEFT JOIN DIAGNOSTICO diag ON diag.ID_DIAGNOSTICO = cd.ID_DIAGNOSTICO
+    LEFT JOIN TRATAMIENTO trat ON trat.ID_CONSULTA = dp.ID_CONSULTA
     LEFT JOIN TRATAMIENTO_EXAMEN te ON te.ID_TRATAMIENTO = trat.ID_TRATAMIENTO
     LEFT JOIN EXAMEN exam ON exam.ID_EXAMEN = te.ID_EXAMEN
     LEFT JOIN TRATAMIENTO_MEDICAMENTO tm ON tm.ID_TRATAMIENTO = trat.ID_TRATAMIENTO
@@ -169,11 +166,6 @@ SELECT
     DESCRIP_MEDICA,
     PROVEEDOR_MEDICA
 FROM Detalle
-WHERE 
-    ID_DIAGNOSTICO IS NOT NULL 
-    OR ID_TRATAMIENTO IS NOT NULL
-    OR ID_EXAMEN IS NOT NULL
-    OR ID_MEDICAMENTO IS NOT NULL
 ORDER BY ID_CONSULTA, rnFila;
 ";
 
@@ -214,6 +206,5 @@ ORDER BY ID_CONSULTA, rnFila;
 
             return list;
         }
-
     }
 }

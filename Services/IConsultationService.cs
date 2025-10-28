@@ -4,6 +4,9 @@ namespace triage_backend.Services
 {
     public interface IConsultationService
     {
-        bool StartConsultation(StartConsultationDto model);
+        /// <summary>
+        /// Inicia una consulta médica y devuelve el ID de la consulta creada.
+        /// </summary>
+        int StartConsultation(StartConsultationDto model);
     }
 }

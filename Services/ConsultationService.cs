@@ -1,6 +1,5 @@
 ﻿using triage_backend.Dtos;
 using triage_backend.Repositories;
-using triage_backend.Services;
 
 namespace triage_backend.Services
 {
@@ -13,9 +12,12 @@ namespace triage_backend.Services
             _repository = repository;
         }
 
-        public bool StartConsultation(StartConsultationDto model)
+        /// <summary>
+        /// Inicia una nueva consulta médica y devuelve el ID de la consulta creada.
+        /// </summary>
+        public int StartConsultation(StartConsultationDto dto)
         {
-            return _repository.StartConsultation(model);
+            return _repository.StartConsultation(dto);
         }
     }
 }

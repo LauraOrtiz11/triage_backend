@@ -21,7 +21,7 @@ namespace triage_backend.Controllers
         /// Cambia el estado del triage a "Finalizado", registra la fecha y crea la consulta asociada.
         /// </summary>
         /// <param name="model">Datos del triage y médico que inicia la consulta.</param>
-        /// <returns>Mensaje de confirmación o error.</returns>
+        /// <returns>Devuelve el ID de la consulta creada.</returns>
         /// <response code="200">La consulta fue iniciada correctamente.</response>
         /// <response code="400">Datos inválidos o error al iniciar la consulta.</response>
         /// <response code="500">Error interno del servidor.</response>
@@ -36,14 +36,15 @@ namespace triage_backend.Controllers
 
             try
             {
-                var success = _service.StartConsultation(model);
+                var consultationId = _service.StartConsultation(model);
 
-                if (success)
+                if (consultationId > 0)
                 {
                     return Ok(new
                     {
                         success = true,
-                        message = "Consulta iniciada correctamente."
+                        message = "Consulta iniciada correctamente.",
+                        consultationId //  Devolvemos el ID de la consulta creada
                     });
                 }
                 else
