@@ -4,6 +4,6 @@
     {
         public int HistoryId { get; set; }
         public int UserId { get; set; }
-        public string PatientName { get; set; }
+        public string? PatientName { get; set; }
     }
 }

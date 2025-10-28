@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using triage_backend.Dtos;
+using System.Data;
 
 namespace triage_backend.Repositories
 {
@@ -12,6 +13,9 @@ namespace triage_backend.Repositories
             _connectionString = config.GetConnectionString("DefaultConnection") ?? string.Empty;
         }
 
+        /// <summary>
+        /// Obtiene el historial de un paciente a partir de su número de documento.
+        /// </summary>
         public async Task<HistoryResponseDto?> GetHistoryByDocumentAsync(string documentId)
         {
             const string query = @"
@@ -43,22 +47,24 @@ namespace triage_backend.Repositories
             return null;
         }
 
+        /// <summary>
+        /// Asocia un diagnóstico a una consulta específica (según el nuevo modelo).
+        /// </summary>
         public async Task<bool> AddDiagnosisToHistoryAsync(HistoryDiagnosisRequest request)
         {
             const string insertQuery = @"
-        INSERT INTO HISTORIAL_DIAGNOSTICO (ID_HISTORIAL, ID_DIAGNOSTICO)
-        VALUES (@HistoryId, @DiagnosisId);";
+                INSERT INTO CONSULTA_DIAGNOSTICO (ID_CONSULTA, ID_DIAGNOSTICO)
+                VALUES (@ConsultationId, @DiagnosisId);";
 
             using var connection = new SqlConnection(_connectionString);
             using var command = new SqlCommand(insertQuery, connection);
 
-            command.Parameters.AddWithValue("@HistoryId", request.HistoryId);
+            command.Parameters.AddWithValue("@ConsultationId", request.ConsultationId);
             command.Parameters.AddWithValue("@DiagnosisId", request.DiagnosisId);
 
             await connection.OpenAsync();
             int rows = await command.ExecuteNonQueryAsync();
             return rows > 0;
         }
-
     }
 }

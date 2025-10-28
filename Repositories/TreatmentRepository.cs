@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using triage_backend.Dtos;
+using System.Data;
 
 namespace triage_backend.Repositories
 {
@@ -12,6 +13,9 @@ namespace triage_backend.Repositories
             _connectionString = configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
         }
 
+        /// <summary>
+        /// Registra un tratamiento asociado a una consulta, junto con sus medicamentos y exámenes.
+        /// </summary>
         public int RegisterTreatment(TreatmentRequestDto request)
         {
             using var conn = new SqlConnection(_connectionString);
@@ -20,21 +24,21 @@ namespace triage_backend.Repositories
 
             try
             {
-                // Insertar el tratamiento vinculado al historial
+                // Insertar tratamiento vinculado a la consulta (NO al historial)
                 const string insertTreatmentSql = @"
-                    INSERT INTO TRATAMIENTO (DESCRIP_TRATA, ID_HISTORIAL)
+                    INSERT INTO TRATAMIENTO (DESCRIP_TRATA, ID_CONSULTA)
                     OUTPUT INSERTED.ID_TRATAMIENTO
-                    VALUES (@Desc, @IdHist);";
+                    VALUES (@Desc, @IdConsulta);";
 
                 int idTreatment;
                 using (var cmd = new SqlCommand(insertTreatmentSql, conn, tx))
                 {
                     cmd.Parameters.AddWithValue("@Desc", (object?)request.Description ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@IdHist", request.IdHistory);
+                    cmd.Parameters.AddWithValue("@IdConsulta", request.ConsultationId);
                     idTreatment = (int)cmd.ExecuteScalar();
                 }
 
-                // Asociar medicamentos
+                // Asociar medicamentos al tratamiento
                 if (request.MedicationIds != null && request.MedicationIds.Any())
                 {
                     const string insertTreatMedSql = @"
@@ -50,7 +54,7 @@ namespace triage_backend.Repositories
                     }
                 }
 
-                // Asociar exámenes
+                // Asociar exámenes al tratamiento
                 if (request.ExamIds != null && request.ExamIds.Any())
                 {
                     const string insertTreatExamSql = @"
@@ -66,20 +70,20 @@ namespace triage_backend.Repositories
                     }
                 }
 
-                // Finalizar la consulta 
+                // Marcar la consulta como finalizada
                 const string updateConsultaSql = @"
                     UPDATE CONSULTA
                     SET FECHA_FIN_CONSULTA = GETDATE(),
-                        ID_ESTADO = 2
-                    WHERE ID_HISTORIAL = @IdHist;";
+                        ID_ESTADO = 2 -- Finalizado
+                    WHERE ID_CONSULTA = @IdConsulta;";
 
                 using (var cmd = new SqlCommand(updateConsultaSql, conn, tx))
                 {
-                    cmd.Parameters.AddWithValue("@IdHist", request.IdHistory);
+                    cmd.Parameters.AddWithValue("@IdConsulta", request.ConsultationId);
                     cmd.ExecuteNonQuery();
                 }
 
-                //Confirmar la transacción
+                // Confirmar transacción
                 tx.Commit();
                 return idTreatment;
             }
