@@ -17,9 +17,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DevCors", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.WithOrigins(
+                "https://localhost:3000",     // <-- añade aquí el origen del FRONTEND real
+                "https://localhost:5173",     // opcional si usas Vite/otro puerto
+                "https://localhost:7233"      // opcional si pruebas swagger o UI en otro puerto
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // importante si envías cookies (withCredentials)
     });
 });
 
@@ -45,7 +50,10 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddHttpClient<IHuggingFaceService, HuggingFaceService>();
 
 // Token service
-builder.Services.AddSingleton<ITokenService, TokenService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+// Refresh token repository
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 // Tokens revocados
 builder.Services.AddScoped<IRevokedTokenRepository, RevokedTokenRepository>();

@@ -1,30 +1,34 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 
 namespace triage_backend.Services
 {
     public class TokenService : ITokenService
     {
         private readonly IConfiguration _config;
-        private readonly double _minutes;
+        
+        // expiraciones (puedes mover a appsettings)
+        private readonly TimeSpan _accessTokenLifetime = TimeSpan.FromMinutes(15); // ajustar si quieres
+        private readonly TimeSpan _refreshTokenLifetime = TimeSpan.FromDays(30);
 
         public TokenService(IConfiguration config)
         {
             _config = config;
-            _minutes = double.TryParse(_config["Jwt:DurationMinutes"], out var m) ? m : 60;
+            
         }
 
-        public string CreateToken(string userId, string email, IEnumerable<string>? roles = null)
+        public string CreateAccessToken(string userId, string email, IEnumerable<string>? roles = null)
         {
             // Obtener valores desde la configuración
-            var key = _config["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in configuration");
-            var issuer = _config["Jwt:Issuer"] ?? throw new Exception("Jwt:Issuer not set in configuration");
-            var audience = _config["Jwt:Audience"] ?? throw new Exception("Jwt:Audience not set in configuration");
+            var key = _config["Jwt:Key"] ?? throw new Exception("Jwt:Key not set");
+            var issuer = _config["Jwt:Issuer"] ?? "triage_backend";
+            var audience = _config["Jwt:Audience"] ?? "triage_backend_users";
 
             // Claims básicos
             var claims = new List<Claim>
@@ -47,13 +51,14 @@ namespace triage_backend.Services
             var keyBytes = Encoding.UTF8.GetBytes(key);
             var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
 
-            var expires = DateTime.UtcNow.AddMinutes(_minutes);
+            var now = DateTime.UtcNow;
+            var expires = DateTime.UtcNow.AddMinutes(15);
 
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                notBefore: DateTime.UtcNow,
+                notBefore: now,
                 expires: expires,
                 signingCredentials: creds
             );
@@ -61,6 +66,17 @@ namespace triage_backend.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public DateTime GetExpiry() => DateTime.UtcNow.AddMinutes(_minutes);
+        public DateTime GetAccessExpiry() => DateTime.UtcNow.Add(_accessTokenLifetime);
+
+        public string CreateRefreshToken()
+        {
+            // Genera un refresh token fuerte (base64-url)
+            var randomBytes = RandomNumberGenerator.GetBytes(64);
+            return Convert.ToBase64String(randomBytes);
+        }
+
+        public DateTime GetRefreshExpiry() => DateTime.UtcNow.Add(_refreshTokenLifetime);
+
+
     }
 }

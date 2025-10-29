@@ -8,5 +8,7 @@ namespace triage_backend.Services
 
         //obtener usuario por email (necesario para login)
         AutenticationDto? GetByEmail(string email);
+
+        AutenticationDto? GetById(int id);
     }
 }

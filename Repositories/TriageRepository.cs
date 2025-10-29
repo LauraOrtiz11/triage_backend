@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using triage_backend.Dtos;

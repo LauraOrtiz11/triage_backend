@@ -125,6 +125,64 @@ namespace triage_backend.Repositories
             return null;
         }
 
+        public AutenticationDto? GetById(int id)
+        {
+            using SqlConnection conn = (SqlConnection)_context.OpenConnection();
+
+            string query = @"
+        SELECT 
+            u.ID_USUARIO,
+            u.CORREO_US,
+            u.CONTRASENA_US,
+            u.ID_ROL,
+            u.NOMBRE_US,
+            u.APELLIDO_US,
+            r.NOMBRE_ROL
+        FROM USUARIO u
+        LEFT JOIN ROL r ON r.ID_Rol = u.ID_ROL
+        WHERE u.ID_USUARIO = @Id
+    ";
+
+            using (SqlCommand cmd = new SqlCommand(query, conn))
+            {
+                cmd.Parameters.AddWithValue("@Id", id);
+
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        var dto = new AutenticationDto();
+
+                        int ordId = reader.GetOrdinal("ID_USUARIO");
+                        int ordEmail = reader.GetOrdinal("CORREO_US");
+                        int ordPass = reader.GetOrdinal("CONTRASENA_US");
+                        int ordRole = reader.GetOrdinal("ID_ROL");
+                        int ordName = reader.GetOrdinal("NOMBRE_US");
+                        int ordLast = reader.GetOrdinal("APELLIDO_US");
+                        int ordRoleName = reader.GetOrdinal("NOMBRE_ROL");
+
+                        dto.IdUs = reader.IsDBNull(ordId) ? (int?)null : reader.GetInt32(ordId);
+                        dto.EmailUs = reader.IsDBNull(ordEmail) ? string.Empty : reader.GetString(ordEmail);
+                        dto.PasswordHashUs = reader.IsDBNull(ordPass) ? null : reader.GetString(ordPass);
+                        dto.RoleIdUs = reader.IsDBNull(ordRole) ? 0 : reader.GetInt32(ordRole);
+                        dto.FirstNameUs = reader.IsDBNull(ordName) ? string.Empty : reader.GetString(ordName);
+                        dto.LastNameUs = reader.IsDBNull(ordLast) ? string.Empty : reader.GetString(ordLast);
+                        dto.RoleNameUs = reader.IsDBNull(ordRoleName) ? null : reader.GetString(ordRoleName);
+
+                        if (!string.IsNullOrEmpty(dto.RoleNameUs))
+                            dto.Roles = new List<string> { dto.RoleNameUs };
+                        else
+                            dto.Roles = new List<string> { dto.RoleIdUs.ToString() };
+
+                        return dto;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+
 
 
 

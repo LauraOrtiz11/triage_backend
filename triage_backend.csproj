@@ -10,13 +10,19 @@
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="itext.bouncy-castle-adapter" Version="9.3.0" />
+    <PackageReference Include="itext7" Version="9.3.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />     
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.2" />     
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.9" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="bin\Debug\net8.0\" />
   </ItemGroup>
 
 </Project>

@@ -5,13 +5,17 @@ namespace triage_backend.Services
 {
     public interface ITokenService
     {
-       
-        /// <param name="userId">Id del usuario (string)</param>
-        /// <param name="email">Email del usuario</param>
-        /// <param name="roles">Lista de roles</param>
-        
-        string CreateToken(string userId, string email, IEnumerable<string>? roles = null);
 
-        DateTime GetExpiry();
+        // Access token (short-lived)
+        string CreateAccessToken(string userId, string email, IEnumerable<string>? roles = null);
+        DateTime GetAccessExpiry();
+
+        // Refresh token (random string)
+        string CreateRefreshToken();
+        DateTime GetRefreshExpiry();
+
+        // (Opcional) helper legacy - no hace falta si migras
+        // string CreateToken(string userId, string email, IEnumerable<string>? roles = null);
+        // DateTime GetExpiry();
     }
 }

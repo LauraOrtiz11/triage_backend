@@ -18,6 +18,12 @@ namespace triage_backend.Services
         {
             return _autenticationRepository.GetByEmail(email);
         }
+
+        // 👇 ESTE método te falta (por eso el error)
+        public AutenticationDto? GetById(int id)
+        {
+            return _autenticationRepository.GetById(id);
+        }
     }
 }
 
