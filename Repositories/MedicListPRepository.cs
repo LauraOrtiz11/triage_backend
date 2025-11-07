@@ -50,7 +50,7 @@ LEFT JOIN USUARIO M
     ON T.ID_MEDICO = M.ID_USUARIO
 WHERE 
     P.ID_ESTADO = 1        -- Paciente activo
-    AND T.ID_ESTADO = 1    -- Triage activo
+   
 ";
 
             var parameters = new List<SqlParameter>();

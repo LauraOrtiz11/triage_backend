@@ -15,7 +15,11 @@ namespace triage_backend.Repositories
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public bool StartConsultation(StartConsultationDto model)
+        /// <summary>
+        /// Inicia una nueva consulta médica y devuelve el ID de la consulta creada.
+        /// Si algo falla, devuelve 0.
+        /// </summary>
+        public int StartConsultation(StartConsultationDto model)
         {
             const string checkHistoryQuery = @"
                 SELECT TOP 1 ID_HISTORIAL 
@@ -34,13 +38,19 @@ namespace triage_backend.Repositories
                 );
                 SELECT SCOPE_IDENTITY();";
 
+            // 🔹 Ahora también actualiza el ID_MEDICO del triage
             const string updateTriageQuery = @"
                 UPDATE TRIAGE 
-                SET ID_ESTADO = 2, FECHA_FIN_TRIAGE = GETDATE()
+                SET 
+                    ID_ESTADO = 2, 
+                    FECHA_FIN_TRIAGE = GETDATE(),
+                    ID_MEDICO = @IdMedic
                 WHERE ID_TRIAGE = @IdTriage;";
 
             const string insertConsultationQuery = @"
-                INSERT INTO CONSULTA (ID_HISTORIAL, ID_MEDICO, ID_TRIAGE, ID_ESTADO, FECHA_INICIO_CONSULTA, FECHA_FIN_CONSULTA)
+                INSERT INTO CONSULTA 
+                    (ID_HISTORIAL, ID_MEDICO, ID_TRIAGE, ID_ESTADO, FECHA_INICIO_CONSULTA, FECHA_FIN_CONSULTA)
+                OUTPUT INSERTED.ID_CONSULTA
                 VALUES (@IdHistorial, @IdMedic, @IdTriage, 1, GETDATE(), NULL);";
 
             using (var connection = _context.OpenConnection())
@@ -50,7 +60,7 @@ namespace triage_backend.Repositories
                 {
                     int idHistorial;
 
-                    //  Verificar si el historial ya existe
+                    // 1️⃣ Verificar si ya existe historial del paciente
                     using (var checkCmd = new SqlCommand(checkHistoryQuery, (SqlConnection)connection, (SqlTransaction)transaction))
                     {
                         checkCmd.Parameters.AddWithValue("@IdTriage", model.IdTriage);
@@ -58,7 +68,7 @@ namespace triage_backend.Repositories
                         idHistorial = (result != null && result != DBNull.Value) ? Convert.ToInt32(result) : 0;
                     }
 
-                    //  Si no existe, crear uno nuevo
+                    // 2️⃣ Si no existe historial, crear uno nuevo
                     if (idHistorial == 0)
                     {
                         using (var insertHistCmd = new SqlCommand(insertHistoryQuery, (SqlConnection)connection, (SqlTransaction)transaction))
@@ -69,31 +79,35 @@ namespace triage_backend.Repositories
                         }
                     }
 
-                    // Actualizar el triage
+                    // 3️⃣ Actualizar el triage (estado + médico)
                     using (var updateTriageCmd = new SqlCommand(updateTriageQuery, (SqlConnection)connection, (SqlTransaction)transaction))
                     {
                         updateTriageCmd.Parameters.AddWithValue("@IdTriage", model.IdTriage);
+                        updateTriageCmd.Parameters.AddWithValue("@IdMedic", model.IdMedic);
                         updateTriageCmd.ExecuteNonQuery();
                     }
 
-                    // Insertar la consulta
+                    // 4️⃣ Crear la consulta y obtener su ID
+                    int idConsulta;
                     using (var insertConsCmd = new SqlCommand(insertConsultationQuery, (SqlConnection)connection, (SqlTransaction)transaction))
                     {
                         insertConsCmd.Parameters.AddWithValue("@IdHistorial", idHistorial);
                         insertConsCmd.Parameters.AddWithValue("@IdMedic", model.IdMedic);
                         insertConsCmd.Parameters.AddWithValue("@IdTriage", model.IdTriage);
-                        insertConsCmd.ExecuteNonQuery();
+                        idConsulta = Convert.ToInt32(insertConsCmd.ExecuteScalar());
                     }
 
+                    // 5️⃣ Confirmar la transacción
                     transaction.Commit();
-                    Console.WriteLine($"[INFO] Consultation successfully started for Triage {model.IdTriage} (History {idHistorial}).");
-                    return true;
+
+                    Console.WriteLine($"[INFO] Consulta creada correctamente (ID_CONSULTA: {idConsulta}, ID_HISTORIAL: {idHistorial}, MÉDICO: {model.IdMedic}).");
+                    return idConsulta;
                 }
                 catch (Exception ex)
                 {
                     transaction.Rollback();
                     Console.WriteLine($"[SQL ERROR] {ex.Message}");
-                    return false;
+                    return 0;
                 }
                 finally
                 {

@@ -2,7 +2,7 @@
 {
     public class HistoryDiagnosisRequest
     {
-        public int HistoryId { get; set; }
+        public int ConsultationId { get; set; }   // NUEVO: id de la consulta
         public int DiagnosisId { get; set; }
     }
 }
