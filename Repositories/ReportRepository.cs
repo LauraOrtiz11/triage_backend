@@ -19,16 +19,7 @@ namespace triage_backend.Repositories
         /// </summary>
         public ReportDto GetTriageStats(DateTime startDate, DateTime endDate)
         {
-            const string query = @"
-                SELECT
-                    AVG(DATEDIFF(MINUTE, T.FECHA_REGISTRO, C.FECHA_INICIO_CONSULTA)) AS AvgWaitTime,
-                    AVG(DATEDIFF(MINUTE, C.FECHA_INICIO_CONSULTA, C.FECHA_FIN_CONSULTA)) AS AvgAttentionTime,
-                    AVG(DATEDIFF(MINUTE, T.FECHA_REGISTRO, C.FECHA_FIN_CONSULTA)) AS TotalTriageTime
-                FROM TRIAGE T
-                INNER JOIN CONSULTA C ON C.ID_TRIAGE = T.ID_TRIAGE
-                WHERE T.FECHA_REGISTRO BETWEEN @StartDate AND @EndDate
-                    AND T.ID_ESTADO = 1
-                    AND C.ID_ESTADO = 1;";
+            const string query = "EXEC SP_ReportTriageStats @StartDate, @EndDate";
 
             using var conn = _context.OpenConnection();
             using var cmd = new SqlCommand(query, (SqlConnection)conn);
@@ -42,16 +33,15 @@ namespace triage_backend.Repositories
                 {
                     AvgWaitTime = reader["AvgWaitTime"] == DBNull.Value ? 0 : Convert.ToDouble(reader["AvgWaitTime"]),
                     AvgAttentionTime = reader["AvgAttentionTime"] == DBNull.Value ? 0 : Convert.ToDouble(reader["AvgAttentionTime"]),
-                    TotalTriageTime = reader["TotalTriageTime"] == DBNull.Value ? 0 : Convert.ToDouble(reader["TotalTriageTime"])
+                    TotalTriageTime = reader["TotalTriageTime"] == DBNull.Value ? 0 : Convert.ToDouble(reader["TotalTriageTime"]),
+                    AvgWaitTimeHHMM = reader["AvgWaitTime_HHMM"]?.ToString() ?? "00:00",
+                    AvgAttentionTimeHHMM = reader["AvgAttentionTime_HHMM"]?.ToString() ?? "00:00",
+                    TotalTriageTimeHHMM = reader["TotalTriageTime_HHMM"]?.ToString() ?? "00:00"
                 };
             }
 
-            return new ReportDto
-            {
-                AvgWaitTime = 0,
-                AvgAttentionTime = 0,
-                TotalTriageTime = 0
-            };
+            return new ReportDto();
         }
+
     }
 }
