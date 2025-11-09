@@ -106,6 +106,10 @@ builder.Services.AddScoped<IExamService, ExamService>();
 // Diagnostico
 builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
 
+// Dashboard
+builder.Services.AddScoped<DashboardRepository>();
+builder.Services.AddScoped<DashboardService>();
+
 // ------------------- Configuración JWT -------------------
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in configuration");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "triage_backend";
