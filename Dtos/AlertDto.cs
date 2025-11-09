@@ -13,7 +13,7 @@
     public class CreateAlertDto
     {
         public int IdPatient { get; set; }
-        public int IdNurse { get; set; }
+        
     }
 
     public class AlertDetailDto
