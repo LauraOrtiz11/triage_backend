@@ -16,7 +16,7 @@ namespace triage_backend.Repositories
 
         /// <summary>
         /// Obtiene la lista de pacientes activos con su nivel de prioridad, hora de llegada y médico tratante,
-        /// permitiendo filtrar por nombre o cédula, solo mostrando triajes activos.
+        /// permitiendo filtrar por nombre o cédula, solo mostrando triajes activos y que no estén en estado 2.
         /// </summary>
         public List<MedicListPDto> GetMedicListP(MedicListFilterDto? filter = null)
         {
@@ -49,8 +49,8 @@ OUTER APPLY (
 LEFT JOIN USUARIO M 
     ON T.ID_MEDICO = M.ID_USUARIO
 WHERE 
-    P.ID_ESTADO = 1        -- Paciente activo
-   
+    P.ID_ESTADO = 1           -- Paciente activo
+    AND (T.ID_ESTADO IS NULL OR T.ID_ESTADO <> 2)  -- Excluir triage con estado 2
 ";
 
             var parameters = new List<SqlParameter>();

@@ -106,9 +106,15 @@ builder.Services.AddScoped<IExamService, ExamService>();
 // Diagnostico
 builder.Services.AddScoped<IDiagnosisService, DiagnosisService>();
 
+
 // Dashboard
 builder.Services.AddScoped<DashboardRepository>();
 builder.Services.AddScoped<DashboardService>();
+
+// Alertas de pacientes que notifican empeoramiento
+builder.Services.AddScoped<AlertRepository>();
+builder.Services.AddScoped<IAlertService, AlertService>();
+
 
 // ------------------- Configuración JWT -------------------
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in configuration");
