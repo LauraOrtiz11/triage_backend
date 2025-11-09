@@ -22,76 +22,17 @@ namespace triage_backend.Repositories
         {
             var patients = new List<MedicListPDto>();
 
-            var query = @"
-SELECT 
-    T.ID_TRIAGE, 
-    P.NOMBRE_US + ' ' + P.APELLIDO_US AS NOMBRE_COMPLETO,
-    P.CEDULA_US AS CEDULA,
-    T.SINTOMAS,
-    ISNULL(PRR.NOMBRE_PRIO, 'Sin resultado') AS PRIORIDAD,
-    ISNULL(PRR.COLOR_PRIO, 'Sin color') AS COLOR,
-    FORMAT(T.FECHA_REGISTRO, 'HH:mm:ss') AS HORA_REGISTRO,
-    CASE 
-        WHEN T.ID_MEDICO IS NULL THEN 'Sin asignar'
-        ELSE ISNULL(M.NOMBRE_US + ' ' + M.APELLIDO_US, 'Sin asignar')
-    END AS MEDICO_TRATANTE
-FROM USUARIO P
-INNER JOIN TRIAGE T 
-    ON P.ID_USUARIO = T.ID_PACIENTE
-OUTER APPLY (
-    SELECT TOP 1 PR2.NOMBRE_PRIO, PR2.COLOR_PRIO
-    FROM TRIAGE_RESULTADO TR
-    INNER JOIN PRIORIDAD PR2 
-        ON TR.ID_PRIORIDAD = PR2.ID_PRIORIDAD
-    WHERE TR.ID_TRIAGE = T.ID_TRIAGE
-    ORDER BY TR.FECHA_REGISTRO DESC
-) AS PRR
-LEFT JOIN USUARIO M 
-    ON T.ID_MEDICO = M.ID_USUARIO
-WHERE 
-    P.ID_ESTADO = 1           -- Paciente activo
-    AND (T.ID_ESTADO IS NULL OR T.ID_ESTADO <> 2)  -- Excluir triage con estado 2
-";
-
-            var parameters = new List<SqlParameter>();
-
-            // Filtro por nombre
-            if (!string.IsNullOrEmpty(filter?.FullName))
-            {
-                query += " AND (P.NOMBRE_US + ' ' + P.APELLIDO_US) LIKE @FullName";
-                parameters.Add(new SqlParameter("@FullName", $"%{filter.FullName}%"));
-            }
-
-            // Filtro por cédula
-            if (!string.IsNullOrWhiteSpace(filter?.Identification))
-            {
-                query += " AND P.CEDULA_US LIKE @Identification";
-                parameters.Add(new SqlParameter("@Identification", $"%{filter.Identification}%"));
-            }
-
-            // Ordenar por prioridad y hora de llegada
-            query += @"
-ORDER BY 
-    CASE 
-        WHEN PRR.COLOR_PRIO = 'Rojo' THEN 1
-        WHEN PRR.COLOR_PRIO = 'Naranja' THEN 2
-        WHEN PRR.COLOR_PRIO = 'Amarillo' THEN 3
-        WHEN PRR.COLOR_PRIO = 'Verde' THEN 4
-        WHEN PRR.COLOR_PRIO = 'Azul' THEN 5
-        ELSE 6
-    END,
-    T.FECHA_REGISTRO DESC;";
-
             try
             {
                 using var connection = _context.OpenConnection();
-                using var command = new SqlCommand(query, (SqlConnection)connection)
+                using var command = new SqlCommand("SP_GetMedicListP", (SqlConnection)connection)
                 {
-                    CommandType = CommandType.Text
+                    CommandType = CommandType.StoredProcedure
                 };
 
-                if (parameters.Count > 0)
-                    command.Parameters.AddRange(parameters.ToArray());
+                // Parametros (sin cambiar nombres)
+                command.Parameters.AddWithValue("@FullName", (object?)filter?.FullName ?? DBNull.Value);
+                command.Parameters.AddWithValue("@Identification", (object?)filter?.Identification ?? DBNull.Value);
 
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
@@ -127,5 +68,6 @@ ORDER BY
                 _context.CloseConnection();
             }
         }
+
     }
 }
