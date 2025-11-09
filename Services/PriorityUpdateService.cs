@@ -20,14 +20,12 @@ namespace triage_backend.Services
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-      
 
-        /// <summary>
-        /// Devuelve el estado actual del paciente, incluyendo su última prioridad y turno.
-        /// </summary>
-        public PatientStatusDto? GetPatientStatus(int triageId)
+
+        public PatientStatusDto? GetPatientStatusByPatient(int patientId)
         {
-            return _repository.GetPatientStatus(triageId);
+            return _repository.GetPatientStatusByPatient(patientId);
         }
+
     }
 }
