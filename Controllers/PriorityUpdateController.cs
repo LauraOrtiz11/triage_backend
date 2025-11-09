@@ -15,24 +15,20 @@ namespace triage_backend.Controllers
             _service = service;
         }
 
-      
+
 
         /// <summary>
-        /// Devuelve el estado actual del triage del paciente.
+        /// Devuelve el estado actual del triage del paciente (buscando automáticamente su triage activo).
         /// </summary>
-        /// <remarks>
-        /// Devuelve la información necesaria para mostrar el estado del triage del paciente, 
-        /// incluyendo su turno, prioridad, personal asignado y signos vitales.
-        /// </remarks>
-        /// <param name="triageId">Identificador del triage</param>
-        /// <returns>Información completa del triage para el paciente.</returns>
-        [HttpGet("status/{triageId}")]
-        public IActionResult GetPatientStatus(int triageId)
+        /// <param name="idPatient">Identificador del paciente</param>
+        /// <returns>Información completa del triage activo para el paciente.</returns>
+        [HttpGet("status/patient/{idPatient}")]
+        public IActionResult GetPatientStatusByPatient(int idPatient)
         {
-            var data = _service.GetPatientStatus(triageId);
+            var data = _service.GetPatientStatusByPatient(idPatient);
 
             if (data == null)
-                return NotFound(new { Success = false, Message = "No se encontró información para este triage." });
+                return Ok(new { Success = false, Message = "El paciente no tiene un triage activo o registrado." });
 
             return Ok(new
             {
@@ -41,5 +37,6 @@ namespace triage_backend.Controllers
                 Data = data
             });
         }
+
     }
 }
