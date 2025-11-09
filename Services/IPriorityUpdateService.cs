@@ -4,6 +4,8 @@ namespace triage_backend.Interfaces
 {
     public interface IPriorityUpdateService
     {
-        PatientStatusDto? GetPatientStatus(int triageId);
+        
+        PatientStatusDto? GetPatientStatusByPatient(int patientId);
+
     }
 }
