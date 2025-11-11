@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using iText.Commons.Actions.Contexts;
+using Microsoft.Data.SqlClient;
 using System.Data;
 using triage_backend.Dtos;
 using triage_backend.Utilities;
@@ -14,7 +15,7 @@ namespace triage_backend.Repositories
             _context = context;
         }
 
-        // 1️⃣ Average times (fixed column names)
+        //Tiempos promedio
         public List<AvgTimesDto> GetAverageTimes(DashboardFilterDto filter)
         {
             var result = new List<AvgTimesDto>();
@@ -56,7 +57,7 @@ namespace triage_backend.Repositories
             return result;
         }
 
-        // 2️⃣ Attentions per week (fixed column names)
+        // Atenciones por semana
         public List<AttentionsDto> GetAttentionsPerWeek(DashboardFilterDto filter)
         {
             var result = new List<AttentionsDto>();
@@ -97,7 +98,7 @@ namespace triage_backend.Repositories
             return result;
         }
 
-        // 3️⃣ Priority distribution (fixed column names)
+        // Distribución por prioridad
         public List<PriorityDistributionDto> GetPriorityDistribution(DashboardFilterDto filter)
         {
             var result = new List<PriorityDistributionDto>();
@@ -149,7 +150,7 @@ namespace triage_backend.Repositories
             return result;
         }
 
-        // 4️⃣ Diagnosis frequency (correct join using CONSULTA_DIAGNOSTICO)
+        // Frecuencia de diagnósticos
         public List<DiagnosisFrequencyDto> GetDiagnosisFrequency(DashboardFilterDto filter)
         {
             var result = new List<DiagnosisFrequencyDto>();
@@ -205,6 +206,73 @@ namespace triage_backend.Repositories
 
             return result;
         }
+
+
+        // Listar enfermeros
+        public List<UserBasicDto> GetNurses()
+        {
+            var result = new List<UserBasicDto>();
+
+            const string query = @"
+        SELECT 
+            U.ID_USUARIO AS UserId,
+            CONCAT(U.NOMBRE_US, ' ', U.APELLIDO_US) AS FullName,
+            R.NOMBRE_ROL AS RoleName
+        FROM USUARIO U
+        INNER JOIN ROL R ON U.ID_ROL = R.ID_ROL
+        WHERE U.ID_ROL = 2
+        ORDER BY U.NOMBRE_US;";
+
+            using var connection = _context.OpenConnection();
+            using var command = new SqlCommand(query, (SqlConnection)connection);
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                result.Add(new UserBasicDto
+                {
+                    UserId = Convert.ToInt32(reader["UserId"]),
+                    FullName = reader["FullName"].ToString() ?? string.Empty,
+                    RoleName = reader["RoleName"].ToString() ?? string.Empty
+                });
+            }
+
+            return result;
+        }
+
+        // Listar médicos
+        public List<UserBasicDto> GetDoctors()
+        {
+            var result = new List<UserBasicDto>();
+
+            const string query = @"
+        SELECT 
+            U.ID_USUARIO AS UserId,
+            CONCAT(U.NOMBRE_US, ' ', U.APELLIDO_US) AS FullName,
+            R.NOMBRE_ROL AS RoleName
+        FROM USUARIO U
+        INNER JOIN ROL R ON U.ID_ROL = R.ID_ROL
+        WHERE U.ID_ROL = 4
+        ORDER BY U.NOMBRE_US;";
+
+            using var connection = _context.OpenConnection();
+            using var command = new SqlCommand(query, (SqlConnection)connection);
+            using var reader = command.ExecuteReader();
+
+            while (reader.Read())
+            {
+                result.Add(new UserBasicDto
+                {
+                    UserId = Convert.ToInt32(reader["UserId"]),
+                    FullName = reader["FullName"].ToString() ?? string.Empty,
+                    RoleName = reader["RoleName"].ToString() ?? string.Empty
+                });
+            }
+
+            return result;
+        }
+
+
 
     }
 }

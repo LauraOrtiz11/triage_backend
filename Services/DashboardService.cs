@@ -31,5 +31,16 @@ namespace triage_backend.Services
         {
             return _repository.GetDiagnosisFrequency(filter);
         }
+
+        public List<UserBasicDto> GetNurses()
+        {
+            return _repository.GetNurses();
+        }
+
+        public List<UserBasicDto> GetDoctors()
+        {
+            return _repository.GetDoctors();
+        }
+
     }
 }
