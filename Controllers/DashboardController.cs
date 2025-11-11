@@ -55,5 +55,28 @@ namespace triage_backend.Controllers
             var data = _service.GetDiagnosisFrequency(filter);
             return Ok(data);
         }
+
+        /// <summary>
+        /// Lista todos los usuarios con rol Enfermera/o (ID_ROL = 2).
+        /// </summary>
+        [HttpGet("nurses")]
+        [ProducesResponseType(typeof(List<UserBasicDto>), 200)]
+        public IActionResult GetNurses()
+        {
+            var data = _service.GetNurses();
+            return Ok(data);
+        }
+
+        /// <summary>
+        /// Lista todos los usuarios con rol Médico/a (ID_ROL = 3).
+        /// </summary>
+        [HttpGet("doctors")]
+        [ProducesResponseType(typeof(List<UserBasicDto>), 200)]
+        public IActionResult GetDoctors()
+        {
+            var data = _service.GetDoctors();
+            return Ok(data);
+        }
+
     }
 }
