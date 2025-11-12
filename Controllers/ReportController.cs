@@ -7,6 +7,8 @@ namespace triage_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
+    [Authorize(Roles = RoleConstants.ADMIN)]
   
     public class ReportController : ControllerBase
     {

@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using triage_backend.Dtos;
 using triage_backend.Services;
+using triage_backend.Utilities;
 
 namespace triage_backend.Controllers
 {
@@ -18,6 +20,8 @@ namespace triage_backend.Controllers
         /// <summary>
         /// Registra una alerta de empeoramiento realizada por el paciente.
         /// </summary>
+        /// [Authorize]
+        [Authorize(Roles = RoleConstants.PATIENT)]
         [HttpPost("notify-deterioration")]
         [ProducesResponseType(typeof(string), 200)]
         public IActionResult NotifyDeterioration([FromBody] CreateAlertDto dto)
@@ -30,6 +34,8 @@ namespace triage_backend.Controllers
         /// Obtiene todas las notificaciones de empeoramiento registradas.
         /// Si no hay alertas, devuelve un mensaje indicando que no hay alertas.
         /// </summary>
+         [Authorize]
+        [Authorize(Roles = RoleConstants.NURSE)]
         [HttpGet("all")]
         [ProducesResponseType(typeof(List<AlertDetailDto>), 200)]
         [ProducesResponseType(typeof(string), 200)]
