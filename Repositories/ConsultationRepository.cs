@@ -38,13 +38,10 @@ namespace triage_backend.Repositories
                 );
                 SELECT SCOPE_IDENTITY();";
 
-            // 🔹 Ahora también actualiza el ID_MEDICO del triage
+            // 🔹 Ahora solo actualiza el ID_MEDICO (el trigger actualiza el estado y la fecha)
             const string updateTriageQuery = @"
                 UPDATE TRIAGE 
-                SET 
-                    ID_ESTADO = 2, 
-                    FECHA_FIN_TRIAGE = GETDATE(),
-                    ID_MEDICO = @IdMedic
+                SET ID_MEDICO = @IdMedic
                 WHERE ID_TRIAGE = @IdTriage;";
 
             const string insertConsultationQuery = @"
@@ -79,7 +76,7 @@ namespace triage_backend.Repositories
                         }
                     }
 
-                    // 3️⃣ Actualizar el triage (estado + médico)
+                    // 3️⃣ Asignar el médico al triage (el trigger actualizará estado y fecha automáticamente)
                     using (var updateTriageCmd = new SqlCommand(updateTriageQuery, (SqlConnection)connection, (SqlTransaction)transaction))
                     {
                         updateTriageCmd.Parameters.AddWithValue("@IdTriage", model.IdTriage);

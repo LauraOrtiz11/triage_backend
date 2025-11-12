@@ -239,6 +239,21 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// Middleware de errores personalizados
+app.UseMiddleware<triage_backend.Utilities.Middleware.ErrorHandlingMiddleware>();
+
+
+
+// Bloquear rutas desconocidas y limpiar URL
+app.Use(async (context, next) =>
+{
+    await next();
+    if (context.Response.StatusCode == 404)
+    {
+        context.Response.Redirect("/"); // redirige a raíz (o login)
+    }
+});
+
 app.UseCors("DevCors");
 app.UseHttpsRedirection();
 app.UseAuthentication();

@@ -11,12 +11,11 @@ namespace triage_backend.Services
     public class TokenService : ITokenService
     {
         private readonly IConfiguration _config;
-        private readonly double _minutes;
+        private const double TOKEN_DURATION_MINUTES = 30; 
 
         public TokenService(IConfiguration config)
         {
             _config = config;
-            _minutes = double.TryParse(_config["Jwt:DurationMinutes"], out var m) ? m : 60;
         }
 
         public string CreateToken(string userId, string email, IEnumerable<string>? roles = null)
@@ -34,21 +33,23 @@ namespace triage_backend.Services
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            // Añadir roles 
+            // Añadir roles (si existen)
             if (roles != null)
             {
-                foreach (var r in roles)
+                foreach (var role in roles)
                 {
-                    claims.Add(new Claim(ClaimTypes.Role, r));
+                    claims.Add(new Claim(ClaimTypes.Role, role));
                 }
             }
 
-            // Generar la clave de firmado
+            // Generar clave de firmado
             var keyBytes = Encoding.UTF8.GetBytes(key);
             var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
 
-            var expires = DateTime.UtcNow.AddMinutes(_minutes);
+            //  Expira exactamente en 30 minutos
+            var expires = DateTime.UtcNow.AddMinutes(TOKEN_DURATION_MINUTES);
 
+            // Crear el token
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
@@ -61,6 +62,6 @@ namespace triage_backend.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public DateTime GetExpiry() => DateTime.UtcNow.AddMinutes(_minutes);
+        public DateTime GetExpiry() => DateTime.UtcNow.AddMinutes(TOKEN_DURATION_MINUTES);
     }
 }

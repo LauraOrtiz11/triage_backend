@@ -1,11 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using triage_backend.Dtos;
 using triage_backend.Services;
+using triage_backend.Utilities;
 
 namespace triage_backend.Controllers
 {
     [ApiController]
     [Route("api/dashboard")]
+    [Authorize]
+    [Authorize(Roles = RoleConstants.ADMIN)]
     public class DashboardController : ControllerBase
     {
         private readonly DashboardService _service;
