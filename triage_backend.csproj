@@ -10,9 +10,13 @@
 
 	<ItemGroup>
 	  <Compile Remove="bin\Debug\net8.0\Images\**" />
+	  <Compile Remove="Images\**" />
 	  <Content Remove="bin\Debug\net8.0\Images\**" />
+	  <Content Remove="Images\**" />
 	  <EmbeddedResource Remove="bin\Debug\net8.0\Images\**" />
+	  <EmbeddedResource Remove="Images\**" />
 	  <None Remove="bin\Debug\net8.0\Images\**" />
+	  <None Remove="Images\**" />
 	</ItemGroup>
 
   <ItemGroup>
@@ -31,7 +35,6 @@
 
   <ItemGroup>
     <Folder Include="bin\Debug\net8.0\" />
-    <Folder Include="Images\" />
   </ItemGroup>
 
 </Project>

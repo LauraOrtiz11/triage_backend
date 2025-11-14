@@ -1,12 +1,12 @@
 ﻿using triage_backend.Dtos;
 
-
-namespace triage_backend.Services
+namespace triage_backend.Interfaces
 {
     public interface IAutenticationService
     {
-
-        //obtener usuario por email (necesario para login)
+        /// <summary>
+        /// Obtiene un usuario mediante su correo electrónico.
+        /// </summary>
         AutenticationDto? GetByEmail(string email);
     }
 }

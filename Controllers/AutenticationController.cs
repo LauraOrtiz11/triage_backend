@@ -1,46 +1,44 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using triage_backend.Dtos;
-using triage_backend.Services;
-using triage_backend.Utilities;
+using triage_backend.Interfaces;  // 👈 IMPORTANTE: aquí está ITokenService e IAutenticationService
 using triage_backend.Repositories;
+using triage_backend.Utilities;
 
 namespace triage_backend.Controllers
 {
     /// <summary>
     /// Controlador encargado de la autenticación de usuarios.
-    /// Permite iniciar sesión, obtener información del usuario autenticado y cerrar sesión (revocar el token).
+    /// Maneja el inicio de sesión, obtención del usuario autenticado y cierre de sesión.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class AutenticationController : Controller
+    public class AutenticationController : ControllerBase
     {
-        private readonly IAutenticationService _autenticationService;
+        private readonly IAutenticationService _authService;
         private readonly ITokenService _tokenService;
         private readonly IRevokedTokenRepository _revokedRepo;
 
-        /// <summary>
-        /// Inicializa una nueva instancia del controlador de autenticación.
-        /// </summary>
-        public AutenticationController(IAutenticationService autenticationService, ITokenService tokenService, IRevokedTokenRepository revokedRepo)
+        public AutenticationController(
+            IAutenticationService authService,
+            ITokenService tokenService,
+            IRevokedTokenRepository revokedRepo)
         {
-            _autenticationService = autenticationService;
+            _authService = authService;
             _tokenService = tokenService;
-            _revokedRepo = revokedRepo ?? throw new ArgumentNullException(nameof(revokedRepo));
+            _revokedRepo = revokedRepo;
         }
 
         /// <summary>
-        /// Inicia sesión con las credenciales de usuario.
+        /// Inicia sesión y devuelve la información básica del usuario. 
+        /// El token JWT se almacena en una cookie HttpOnly.
         /// </summary>
-        /// <param name="loginDto">Objeto con el correo electrónico y la contraseña del usuario.</param>
-        /// <returns>
-        /// Devuelve un token JWT junto con la información básica del usuario autenticado.
-        /// </returns>
-        /// <response code="200">Inicio de sesión exitoso. Devuelve el token y los datos del usuario.</response>
-        /// <response code="400">Si faltan los campos obligatorios o los datos son inválidos.</response>
-        /// <response code="401">Si las credenciales son incorrectas.</response>
+        /// <param name="loginDto">Credenciales del usuario.</param>
+        /// <returns>Información reducida del usuario autenticado.</returns>
+        /// <response code="200">Inicio de sesión exitoso.</response>
+        /// <response code="400">Datos incompletos o inválidos.</response>
+        /// <response code="401">Credenciales incorrectas.</response>
         [HttpPost("login")]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(object), 400)]
@@ -48,100 +46,69 @@ namespace triage_backend.Controllers
         public IActionResult Login([FromBody] LoginDto loginDto)
         {
             if (loginDto == null || string.IsNullOrEmpty(loginDto.Email) || string.IsNullOrEmpty(loginDto.Password))
-                return BadRequest(new { message = "Email y password requeridos" });
+                return BadRequest(new { success = false, message = "Email y password son obligatorios." });
 
-            var user = _autenticationService.GetByEmail(loginDto.Email);
-            if (user == null)
-                return Unauthorized(new { message = "Usuario o contraseña incorrectos" });
+            var user = _authService.GetByEmail(loginDto.Email);
+            if (user == null || string.IsNullOrEmpty(user.PasswordHashUs))
+                return Unauthorized(new { success = false, message = "Usuario o contraseña incorrectos." });
 
-            if (string.IsNullOrEmpty(user.PasswordHashUs))
-                return Unauthorized(new { message = "Usuario o contraseña incorrectos" });
+            if (!EncryptUtility.VerifyPassword(loginDto.Password, user.PasswordHashUs))
+                return Unauthorized(new { success = false, message = "Usuario o contraseña incorrectos." });
 
-            var isValid = EncryptUtility.VerifyPassword(loginDto.Password, user.PasswordHashUs);
-            if (!isValid)
-                return Unauthorized(new { message = "Usuario o contraseña incorrectos" });
+            // 🔐 Generar token seguro a partir del DTO completo
+            var token = _tokenService.GenerateToken(user);
 
-            IEnumerable<string>? roles = null;
-            if (user.Roles != null && user.Roles.Any())
-                roles = user.Roles;
-            else
-                roles = new List<string> { user.RoleNameUs! };
+            // 🍪 Guardar token en cookie HttpOnly
+            Response.Cookies.Append(
+                "X-Auth",
+                token,
+                new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Path = "/"
+                });
 
-            var token = _tokenService.CreateToken(user.IdUs?.ToString() ?? string.Empty, user.EmailUs, roles);
-
+            // 🔎 Solo devolvemos datos reducidos al frontend
             return Ok(new
             {
-                Success = true,
-                Token = token,
-                ExpiresAt = _tokenService.GetExpiry(),
-                User = new
+                success = true,
+                user = new
                 {
-                    Id = user.IdUs,
-                    Email = user.EmailUs,
+                    id = user.IdUs,
                     user.FirstNameUs,
                     user.LastNameUs,
-                    user.RoleIdUs,
-                    RoleName = user.RoleNameUs,
-                    Roles = user.Roles
+                    user.RoleIdUs
                 }
             });
         }
 
         /// <summary>
-        /// Obtiene la información del usuario autenticado mediante el token actual.
+        /// Cierra la sesión revocando el token JWT actual.
         /// </summary>
-        /// <returns>
-        /// Devuelve los datos básicos del usuario, incluyendo identificador, nombre y roles.
-        /// </returns>
-        /// <response code="200">Devuelve los datos del usuario autenticado.</response>
-        /// <response code="401">Si el token no es válido o ha expirado.</response>
-        [Authorize]
-        [HttpGet("me")]
-        [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 401)]
-        public IActionResult Me()
-        {
-            var user = HttpContext.User;
-
-            var claims = user.Claims.Select(c => new { c.Type, c.Value }).ToList();
-            var roles = user.FindAll(ClaimTypes.Role).Select(r => r.Value).ToList();
-
-            return Ok(new
-            {
-                NameIdentifier = user.FindFirst(ClaimTypes.NameIdentifier)?.Value,
-                Name = user.FindFirst(ClaimTypes.Name)?.Value,
-                JwtId = user.FindFirst(JwtRegisteredClaimNames.Jti)?.Value,
-                Roles = roles,
-                AllClaims = claims
-            });
-        }
-
-        /// <summary>
-        /// Cierra la sesión del usuario actual y revoca el token JWT utilizado.
-        /// </summary>
-        /// <returns>
-        /// Confirma que el token ha sido revocado correctamente.
-        /// </returns>
-        /// <response code="200">Token revocado exitosamente.</response>
-        /// <response code="400">Si el token no contiene información válida.</response>
+        /// <returns>Confirmación de cierre de sesión.</returns>
+        /// <response code="200">Sesión cerrada correctamente.</response>
         [Authorize]
         [HttpPost("logout")]
-        [ProducesResponseType(typeof(object), 200)]
-        [ProducesResponseType(typeof(object), 400)]
         public async Task<IActionResult> Logout()
         {
             var jti = User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-            if (string.IsNullOrEmpty(jti))
-                return BadRequest(new { success = false, message = "El token no contiene el identificador jti" });
 
-            DateTime? expiresAt = null;
-            var exp = User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
-            if (long.TryParse(exp, out var expUnix))
-                expiresAt = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
+            if (string.IsNullOrEmpty(jti))
+                return BadRequest(new { success = false, message = "Token inválido (sin JTI)." });
+
+            var expUnix = User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
+            DateTime? expiresAt = expUnix != null
+                ? DateTimeOffset.FromUnixTimeSeconds(long.Parse(expUnix)).UtcDateTime
+                : null;
 
             await _revokedRepo.AddAsync(jti, expiresAt);
 
-            return Ok(new { success = true, message = "Token revocado correctamente" });
+            // Borrar cookie HttpOnly
+            Response.Cookies.Delete("X-Auth");
+
+            return Ok(new { success = true, message = "Sesión cerrada correctamente." });
         }
     }
 }
