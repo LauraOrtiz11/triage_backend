@@ -1,23 +1,21 @@
 ﻿using triage_backend.Dtos;
+using triage_backend.Interfaces;
 using triage_backend.Repositories;
-using triage_backend.Utilities;
 
 namespace triage_backend.Services
 {
     public class AutenticationService : IAutenticationService
     {
-        private readonly AutenticationRepository _autenticationRepository;
+        private readonly AutenticationRepository _repository;
 
-        public AutenticationService(AutenticationRepository autenticationRepository)
+        public AutenticationService(AutenticationRepository repository)
         {
-            _autenticationRepository = autenticationRepository;
+            _repository = repository;
         }
 
-        // método para login (busca usuario por email y retorna un User simple) 
         public AutenticationDto? GetByEmail(string email)
         {
-            return _autenticationRepository.GetByEmail(email);
+            return _repository.GetByEmail(email);
         }
     }
 }
-

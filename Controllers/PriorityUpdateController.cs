@@ -9,7 +9,7 @@ namespace triage_backend.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    [Authorize(Roles = RoleConstants.NURSE)]
+    [Authorize(Roles = RoleConstants.PATIENT)]
     public class PriorityUpdateController : ControllerBase
     {
         private readonly IPriorityUpdateService _service;

@@ -15,7 +15,8 @@ namespace triage_backend.Controllers
     [Route("api/[controller]")]
     [Produces("application/json")]
     [Authorize]
-    [Authorize(Roles = RoleConstants.NURSE)]
+    [Authorize(Roles = $"{RoleConstants.NURSE},{RoleConstants.ADMIN}")]
+
     public class TriageResultController : ControllerBase
     {
         private readonly ITriageResultService _triageResultService;
