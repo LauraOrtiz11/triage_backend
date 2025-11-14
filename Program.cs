@@ -19,12 +19,19 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("DevCors", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy
+            .WithOrigins(
+                "http://localhost:3000",
+                "https://9bnspjw4-3000.use2.devtunnels.ms",
+                "https://localhost:5173",
+                "https://*.devtunnels.ms"
+            )
+            .SetIsOriginAllowed(origin => true) // permite túneles dinámicos
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
-
 // ------------------- Controladores -------------------
 builder.Services.AddControllers();
 
@@ -116,61 +123,56 @@ builder.Services.AddScoped<AlertRepository>();
 builder.Services.AddScoped<IAlertService, AlertService>();
 
 
-// ------------------- Configuración JWT -------------------
-var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in configuration");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "triage_backend";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "triage_backend_users";
+// ----------------------------------------------------------------------
+// JWT
+// ----------------------------------------------------------------------
+// ------------------- JWT -------------------
+var jwtSection = builder.Configuration.GetSection("Jwt");
+string jwtKey = jwtSection["Key"]!;
+string jwtIssuer = jwtSection["Issuer"]!;
+string jwtAudience = jwtSection["Audience"]!;
+
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+// 🔥 ESTO FALTABA
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+
+.AddJwtBearer(options =>
+{
+    options.SaveToken = false;
+    options.RequireHttpsMetadata = false; // <--- DEV y TUNNELS !!
+
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.RequireHttpsMetadata = false;
-        options.SaveToken = true;
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+        ClockSkew = TimeSpan.Zero
+    };
 
-        options.TokenValidationParameters = new TokenValidationParameters
+    // 👇 LEER TOKEN DESDE COOKIE HttpOnly
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = ctx =>
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-            ClockSkew = TimeSpan.Zero,
-            NameClaimType = ClaimTypes.Name,
-            RoleClaimType = ClaimTypes.Role
-        };
-
-        options.Events = new JwtBearerEvents
-        {
-            OnTokenValidated = async context =>
+            if (ctx.Request.Cookies.ContainsKey("X-Auth"))
             {
-                try
-                {
-                    var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-                    if (string.IsNullOrEmpty(jti))
-                    {
-                        context.Fail("Token missing jti");
-                        return;
-                    }
-
-                    var revokedRepo = context.HttpContext.RequestServices.GetService<IRevokedTokenRepository>();
-                    if (revokedRepo == null) return;
-
-                    var isRevoked = await revokedRepo.IsRevokedAsync(jti);
-                    if (isRevoked) context.Fail("Token revoked");
-                }
-                catch (Exception ex)
-                {
-                    context.Fail("OnTokenValidated error: " + ex.Message);
-                }
+                ctx.Token = ctx.Request.Cookies["X-Auth"];
             }
-        };
-    });
+            return Task.CompletedTask;
+        }
+    };
+});
 
 builder.Services.AddAuthorization();
-
 // ------------------- Swagger -------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
