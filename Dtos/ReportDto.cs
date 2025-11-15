@@ -11,5 +11,9 @@ namespace triage_backend.Dtos
         public double AvgWaitTime { get; set; }       // Tiempo promedio de espera (minutos)
         public double AvgAttentionTime { get; set; }  // Tiempo promedio de atención (minutos)
         public double TotalTriageTime { get; set; }   // Tiempo total del proceso (minutos)
+        public string AvgWaitTimeHHMM { get; set; } =string.Empty;
+        public string AvgAttentionTimeHHMM { get; set; } = string.Empty;
+        public string TotalTriageTimeHHMM { get; set; } = string.Empty;
+
     }
 }

@@ -1,12 +1,16 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using triage_backend.Dtos;
-using triage_backend.Services;
 using triage_backend.Interfaces;
+using triage_backend.Services;
+using triage_backend.Utilities;
 
 namespace triage_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
+    [Authorize(Roles = RoleConstants.DOCTOR)]
     public class HistoryController : ControllerBase
     {
         private readonly IHistoryService _historyService;

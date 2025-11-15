@@ -1,66 +1,55 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
+using triage_backend.Dtos;
+using triage_backend.Interfaces;
 
-namespace triage_backend.Services
+namespace triage_backend.Utilities
 {
     public class TokenService : ITokenService
     {
-        private readonly IConfiguration _config;
-        private readonly double _minutes;
+        private readonly string _jwtKey;
+        private readonly string _jwtIssuer;
+        private readonly string _jwtAudience;
 
         public TokenService(IConfiguration config)
         {
-            _config = config;
-            _minutes = double.TryParse(_config["Jwt:DurationMinutes"], out var m) ? m : 60;
+            _jwtKey = config["Jwt:Key"]!;
+            _jwtIssuer = config["Jwt:Issuer"]!;
+            _jwtAudience = config["Jwt:Audience"]!;
         }
 
-        public string CreateToken(string userId, string email, IEnumerable<string>? roles = null)
+        public string GenerateToken(AutenticationDto user)
         {
-            // Obtener valores desde la configuración
-            var key = _config["Jwt:Key"] ?? throw new Exception("Jwt:Key not set in configuration");
-            var issuer = _config["Jwt:Issuer"] ?? throw new Exception("Jwt:Issuer not set in configuration");
-            var audience = _config["Jwt:Audience"] ?? throw new Exception("Jwt:Audience not set in configuration");
+            if (user == null)
+                throw new ArgumentNullException(nameof(user));
 
-            // Claims básicos
+            
+            string roleName = user.RealRoleName;
+
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Name, email ?? string.Empty),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(ClaimTypes.NameIdentifier, (user.IdUs ?? 0).ToString()),
+                new Claim(ClaimTypes.Name, user.EmailUs ?? string.Empty),
+                new Claim(ClaimTypes.Role, roleName)
             };
 
-            // Añadir roles 
-            if (roles != null)
-            {
-                foreach (var r in roles)
-                {
-                    claims.Add(new Claim(ClaimTypes.Role, r));
-                }
-            }
-
-            // Generar la clave de firmado
-            var keyBytes = Encoding.UTF8.GetBytes(key);
-            var creds = new SigningCredentials(new SymmetricSecurityKey(keyBytes), SecurityAlgorithms.HmacSha256);
-
-            var expires = DateTime.UtcNow.AddMinutes(_minutes);
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
+                issuer: _jwtIssuer,
+                audience: _jwtAudience,
                 claims: claims,
-                notBefore: DateTime.UtcNow,
-                expires: expires,
+                expires: DateTime.UtcNow.AddHours(8),
                 signingCredentials: creds
             );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
-
-        public DateTime GetExpiry() => DateTime.UtcNow.AddMinutes(_minutes);
     }
 }
