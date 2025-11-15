@@ -28,15 +28,13 @@ namespace triage_backend.Utilities
             if (user == null)
                 throw new ArgumentNullException(nameof(user));
 
-            // Usamos SIEMPRE el rol real según la BD
+            
             string roleName = user.RealRoleName;
 
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, (user.IdUs ?? 0).ToString()),
                 new Claim(ClaimTypes.Name, user.EmailUs ?? string.Empty),
-
-                // 🔥 ESTE ES EL CLAIM DECISIVO
                 new Claim(ClaimTypes.Role, roleName)
             };
 

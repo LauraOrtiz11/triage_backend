@@ -16,7 +16,7 @@ namespace triage_backend.Services
 
         public DiagnosisService(IConfiguration config)
         {
-            // ✅ Garantiza que nunca sea null
+            
             _connectionString = config.GetConnectionString("DefaultConnection") ?? string.Empty;
         }
 

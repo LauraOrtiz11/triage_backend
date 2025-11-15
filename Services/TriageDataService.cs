@@ -7,7 +7,7 @@ namespace triage_backend.Services
     public class TriageDataService
     {
         private readonly HuggingFaceService _huggingFaceService;
-        private readonly ITriageRepository _triageRepository; // ✅ usar la interfaz aquí
+        private readonly ITriageRepository _triageRepository; 
 
         public TriageDataService(HuggingFaceService huggingFaceService, ITriageRepository triageRepository)
         {
@@ -26,10 +26,10 @@ namespace triage_backend.Services
                 VitalSigns = request.VitalSigns
             });
 
-            // 🧩 Mapear la prioridad a partir del color sugerido por la IA
+            // Mapear la prioridad a partir del color sugerido por la IA
             int ID_Priority = MapPriorityToId(prediction.SuggestedLevel);
 
-            // 🟢 Estado fijo: 1
+            //Estado fijo: 1
             int ID_State = 1;
 
             // Guardar el registro en la base de datos
