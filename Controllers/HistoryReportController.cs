@@ -1,14 +1,16 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using TriageBackend.Services;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using triage_backend.Utilities;
+using TriageBackend.Services;
 
 namespace TriageBackend.Controllers
 {
     [ApiController]
     [Route("api/patients/{patientId:int}/[controller]")]
     [Authorize]
+    [Authorize(Roles = RoleConstants.PATIENT)]
     public class HistoryReportController : ControllerBase
     {
         private readonly IHistoryReportService _historyReportService;
