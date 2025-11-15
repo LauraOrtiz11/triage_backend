@@ -11,6 +11,7 @@ using triage_backend.Interfaces;
 using triage_backend.Repositories;
 using triage_backend.Services;
 using triage_backend.Utilities;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -121,6 +122,20 @@ builder.Services.AddScoped<DashboardService>();
 // Alertas de pacientes que notifican empeoramiento
 builder.Services.AddScoped<AlertRepository>();
 builder.Services.AddScoped<IAlertService, AlertService>();
+
+// Repositorio (si no lo registraste ya)
+builder.Services.AddScoped<TriageBackend.Repositories.IHistoryRepository, TriageBackend.Repositories.HistoryReportRepository>();
+
+// Servicio renombrado
+builder.Services.AddScoped<TriageBackend.Services.IHistoryReportService, TriageBackend.Services.HistoryReportService>();
+
+// PDF util
+builder.Services.AddScoped<TriageBackend.Utilities.IPdfGeneratorHistoryReport, TriageBackend.Utilities.PdfGeneratorHistoryReport>();
+
+// ▼ Configuración necesaria para QuestPDF
+QuestPDF.Settings.License = LicenseType.Community;
+QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = false;
+
 
 
 // ----------------------------------------------------------------------

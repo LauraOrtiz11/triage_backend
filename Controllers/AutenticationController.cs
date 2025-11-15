@@ -79,7 +79,9 @@ namespace triage_backend.Controllers
                     id = user.IdUs,
                     user.FirstNameUs,
                     user.LastNameUs,
-                    user.RoleIdUs
+                    user.RoleIdUs,
+                    RoleName = user.RoleNameUs,
+                    Roles = user.Roles 
                 }
             });
         }
