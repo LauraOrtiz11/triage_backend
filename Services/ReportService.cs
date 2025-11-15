@@ -40,10 +40,10 @@ namespace triage_backend.Services
 
                 // =================== COLORES ===================
                 var whiteBackground = ColorConstants.WHITE;
-                var headerPurple = new DeviceRgb(230, 220, 245);  // morado claro translúcido
-                var darkPurple = new DeviceRgb(85, 45, 130);      // morado oscuro principal
+                var headerPurple = new DeviceRgb(230, 220, 245);
+                var darkPurple = new DeviceRgb(85, 45, 130);
                 var grayText = new DeviceRgb(60, 60, 60);
-                var pastelPurple = new DeviceRgb(210, 200, 235);  // para la tabla
+                var pastelPurple = new DeviceRgb(210, 200, 235);
 
                 // ====== FONDO DE TODA LA PÁGINA (BLANCO) ======
                 if (pdf.GetNumberOfPages() == 0)
@@ -58,7 +58,7 @@ namespace triage_backend.Services
                       .Fill()
                       .RestoreState();
 
-                // ====== ENCABEZADO (logo izquierda, título derecha) ======
+                // ====== ENCABEZADO ======
                 var headerTable = new Table(new float[] { 80, 1 }).UseAllAvailableWidth();
                 var logoCell = new Cell().SetBorder(Border.NO_BORDER).SetPaddingRight(10);
 
@@ -105,23 +105,27 @@ namespace triage_backend.Services
                     return;
                 }
 
-                // ====== TABLA ======
-                var table = new Table(new float[] { 3, 1 })
+                // ====== TABLA PRINCIPAL ======
+                var table = new Table(new float[] { 3, 1, 1 })
                     .UseAllAvailableWidth()
                     .SetMarginTop(10)
                     .SetMarginBottom(16);
 
                 table.AddHeaderCell(HeaderCell("Indicador", headerPurple, fontBold, darkPurple));
                 table.AddHeaderCell(HeaderCell("Valor (min)", headerPurple, fontBold, darkPurple));
+                table.AddHeaderCell(HeaderCell("Equivalente (hh:mm)", headerPurple, fontBold, darkPurple));
 
                 table.AddCell(MetricCell("Tiempo promedio de espera antes de ser atendido", fontRegular));
                 table.AddCell(ValueCell(stats.AvgWaitTime, fontRegular));
+                table.AddCell(ValueCell(stats.AvgWaitTimeHHMM, fontRegular));
 
                 table.AddCell(MetricCell("Tiempo promedio de duración de la atención", fontRegular));
                 table.AddCell(ValueCell(stats.AvgAttentionTime, fontRegular));
+                table.AddCell(ValueCell(stats.AvgAttentionTimeHHMM, fontRegular));
 
                 table.AddCell(MetricCell("Tiempo total promedio del proceso de triage", fontRegular));
                 table.AddCell(ValueCell(stats.TotalTriageTime, fontRegular));
+                table.AddCell(ValueCell(stats.TotalTriageTimeHHMM, fontRegular));
 
                 doc.Add(table);
 
@@ -191,6 +195,14 @@ namespace triage_backend.Services
         private static Cell ValueCell(double value, PdfFont font)
         {
             return new Cell().Add(new Paragraph(value.ToString("F2")).SetFont(font))
+                .SetTextAlignment(TextAlignment.CENTER)
+                .SetPadding(6);
+        }
+
+        // ✅ Sobrecarga para strings (formato hh:mm)
+        private static Cell ValueCell(string value, PdfFont font)
+        {
+            return new Cell().Add(new Paragraph(value).SetFont(font))
                 .SetTextAlignment(TextAlignment.CENTER)
                 .SetPadding(6);
         }
