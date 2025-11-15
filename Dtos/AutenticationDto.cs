@@ -24,7 +24,6 @@
         public string? RoleNameUs { get; set; }
         public List<string>? Roles { get; set; }
 
-        // 🔥 Rol REAL según el ID de la BD
         public string RealRoleName =>
             RoleIdUs switch
             {

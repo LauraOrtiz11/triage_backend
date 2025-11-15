@@ -20,7 +20,7 @@
         {
             using var conn = (SqlConnection)_context.OpenConnection();
 
-            // 1️⃣ Buscar el triage activo o más reciente de ese paciente
+            // Buscar el triage activo o más reciente de ese paciente
             const string getTriageQuery = @"
         SELECT TOP 1 ID_TRIAGE
         FROM TRIAGE
@@ -39,7 +39,7 @@
             if (triageId == null)
                 throw new InvalidOperationException("El paciente no tiene un triage registrado.");
 
-            // 2️⃣ Reusar la misma lógica de tu consulta original, pero con el ID encontrado
+            // Reusar la misma lógica de tu consulta original, pero con el ID encontrado
             const string query = @"
         SELECT TOP 1
             U.NOMBRE_US + ' ' + U.APELLIDO_US AS FullName,

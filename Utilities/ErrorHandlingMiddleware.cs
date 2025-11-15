@@ -20,7 +20,7 @@ namespace triage_backend.Utilities.Middleware
         {
             try
             {
-                await _next(context); // Deja que la petición siga su flujo
+                await _next(context); 
 
                 // Captura estados comunes de autenticación y autorización
                 if (context.Response.StatusCode == (int)HttpStatusCode.Unauthorized)
