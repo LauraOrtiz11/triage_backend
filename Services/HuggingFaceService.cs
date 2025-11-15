@@ -25,10 +25,10 @@ namespace triage_backend.Services
 
         public async Task<TriageResponseDto> GetTriagePredictionAsync(TriageRequestDto request)
         {
-            // 1️⃣ Traducir los síntomas
+            // 1Traducir los síntomas
             var translatedSymptoms = await TranslateToEnglishAsync(request.Symptoms);
 
-            // 2️⃣ Construir el prompt
+            // 2Construir el prompt
             var inputText =
                 "You are an experienced triage nurse in an emergency department. " +
                 "Classify urgency strictly as one of: blue, green, yellow, orange, red. " +
@@ -84,7 +84,7 @@ namespace triage_backend.Services
             var score = bestResult.GetProperty("score").GetDecimal();
 
 
-            // 3️⃣ Aplicar reglas médicas adicionales
+            // 3️Aplicar reglas médicas adicionales
             label = ApplyMedicalRules(label, request);
 
             return new TriageResponseDto

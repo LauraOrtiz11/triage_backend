@@ -60,7 +60,7 @@ namespace triage_backend.Repositories
                 {
                     int idHistorial;
 
-                    // 1️⃣ Verificar si ya existe historial del paciente
+                    // Verificar si ya existe historial del paciente
                     using (var checkCmd = new SqlCommand(checkHistoryQuery, (SqlConnection)connection, (SqlTransaction)transaction))
                     {
                         checkCmd.Parameters.AddWithValue("@IdTriage", model.IdTriage);
@@ -68,7 +68,7 @@ namespace triage_backend.Repositories
                         idHistorial = (result != null && result != DBNull.Value) ? Convert.ToInt32(result) : 0;
                     }
 
-                    // 2️⃣ Si no existe historial, crear uno nuevo
+                    // Si no existe historial, crear uno nuevo
                     if (idHistorial == 0)
                     {
                         using (var insertHistCmd = new SqlCommand(insertHistoryQuery, (SqlConnection)connection, (SqlTransaction)transaction))
@@ -79,7 +79,7 @@ namespace triage_backend.Repositories
                         }
                     }
 
-                    // 3️⃣ Actualizar el triage (estado + médico)
+                    // Actualizar el triage (estado + médico)
                     using (var updateTriageCmd = new SqlCommand(updateTriageQuery, (SqlConnection)connection, (SqlTransaction)transaction))
                     {
                         updateTriageCmd.Parameters.AddWithValue("@IdTriage", model.IdTriage);
@@ -87,7 +87,7 @@ namespace triage_backend.Repositories
                         updateTriageCmd.ExecuteNonQuery();
                     }
 
-                    // 4️⃣ Crear la consulta y obtener su ID
+                    // Crear la consulta y obtener su ID
                     int idConsulta;
                     using (var insertConsCmd = new SqlCommand(insertConsultationQuery, (SqlConnection)connection, (SqlTransaction)transaction))
                     {
@@ -97,7 +97,7 @@ namespace triage_backend.Repositories
                         idConsulta = Convert.ToInt32(insertConsCmd.ExecuteScalar());
                     }
 
-                    // 5️⃣ Confirmar la transacción
+                    // Confirmar la transacción
                     transaction.Commit();
 
                     Console.WriteLine($"[INFO] Consulta creada correctamente (ID_CONSULTA: {idConsulta}, ID_HISTORIAL: {idHistorial}, MÉDICO: {model.IdMedic}).");
