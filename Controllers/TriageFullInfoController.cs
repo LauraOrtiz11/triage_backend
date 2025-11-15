@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using triage_backend.Dtos;
-using triage_backend.Services;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using triage_backend.Dtos;
+using triage_backend.Services;
+using triage_backend.Utilities;
 
 namespace triage_backend.Controllers
 {
@@ -11,6 +13,8 @@ namespace triage_backend.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
+    [Authorize(Roles = RoleConstants.DOCTOR)]
     public class TriageFullInfoController : ControllerBase
     {
         private readonly ITriageFullInfoService _service;

@@ -1,23 +1,26 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using triage_backend.Services;
 using triage_backend.Utilities;
 
 namespace triage_backend.Controllers
 {
     /// <summary>
-    /// Controller responsible for managing triage patient operations.
-    /// Provides access to triage data filtered by priority color.
+    /// Controlador responsable de gestionar las operaciones de pacientes del triage.
+    /// Proporciona acceso a los datos del triage filtrados por color de prioridad.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
+    [Authorize(Roles = RoleConstants.NURSE)]
     public class TriagePatientController : ControllerBase
     {
         private readonly ITriagePatientService _triageService;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="TriagePatientController"/> class.
+        /// Inicializa una nueva instancia de la clase <see cref="TriagePatientController"/>.
         /// </summary>
-        /// <param name="configuration">Application configuration for database connection.</param>
+        /// <param name="configuration">Configuración de la aplicación para la conexión a la base de datos.</param>
         public TriagePatientController(IConfiguration configuration)
         {
             var context = new ContextDB(configuration);
@@ -25,17 +28,17 @@ namespace triage_backend.Controllers
         }
 
         /// <summary>
-        /// Recupera una lista de pacientes clasificados, opcionalmente filtrados por color de prioridad.
+        /// Obtiene una lista de pacientes clasificados, opcionalmente filtrados por color de prioridad.
         /// </summary>
         /// <param name="color">
-        /// (Optional) Priority color to filter triage patients.
-        /// Valid values: 'rojo', 'naranja', 'amarillo', 'verde', 'azul'.
+        /// (Opcional) Color de prioridad para filtrar los pacientes del triage.
+        /// Valores válidos: 'rojo', 'naranja', 'amarillo', 'verde', 'azul'.
         /// </param>
         /// <returns>
-        /// A list of patients with triage information and assigned priority.
+        /// Una lista de pacientes con información del triage y prioridad asignada.
         /// </returns>
-        /// <response code="200">Returns the list of triage patients.</response>
-        /// <response code="400">If an error occurs during the process.</response>
+        /// <response code="200">Devuelve la lista de pacientes del triage.</response>
+        /// <response code="400">Si ocurre un error durante el proceso.</response>
         [HttpGet]
         [ProducesResponseType(typeof(object), 200)]
         [ProducesResponseType(typeof(object), 400)]

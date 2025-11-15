@@ -9,7 +9,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Content Include="bin\Debug\net8.0\Images\logo_triage.jpg" />
+	  <Compile Remove="bin\Debug\net8.0\Images\**" />
+	  <Compile Remove="Images\**" />
+	  <Content Remove="bin\Debug\net8.0\Images\**" />
+	  <Content Remove="Images\**" />
+	  <EmbeddedResource Remove="bin\Debug\net8.0\Images\**" />
+	  <EmbeddedResource Remove="Images\**" />
+	  <None Remove="bin\Debug\net8.0\Images\**" />
+	  <None Remove="Images\**" />
 	</ItemGroup>
 
   <ItemGroup>
@@ -25,6 +32,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="bin\Debug\net8.0\" />
   </ItemGroup>
 
 </Project>
