@@ -26,7 +26,7 @@ namespace TriageBackend.Services
 
         public async Task<ConsultationReportDto?> GetConsultationDetailAsync(int patientId, int consultaId)
         {
-            // Si quieres, aquí puedes validar que la consulta pertenece al paciente antes de devolverla.
+            
             return await _repo.GetConsultationDetailAsync(patientId, consultaId);
         }
 
@@ -38,7 +38,7 @@ namespace TriageBackend.Services
 
         public async Task<int?> GetHistorialIdByUserIdAsync(int userId)
         {
-            // Simple delegación al repo que debe contener la lógica SQL para obtener el ID_HISTORIAL
+            
             return await _repo.GetHistorialIdByUserIdAsync(userId);
         }
     }

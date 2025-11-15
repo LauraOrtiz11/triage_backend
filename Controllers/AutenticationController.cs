@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using triage_backend.Dtos;
-using triage_backend.Interfaces;  // 👈 IMPORTANTE: aquí está ITokenService e IAutenticationService
+using triage_backend.Interfaces; 
 using triage_backend.Repositories;
 using triage_backend.Utilities;
 
@@ -55,10 +55,10 @@ namespace triage_backend.Controllers
             if (!EncryptUtility.VerifyPassword(loginDto.Password, user.PasswordHashUs))
                 return Unauthorized(new { success = false, message = "Usuario o contraseña incorrectos." });
 
-            // 🔐 Generar token seguro a partir del DTO completo
+            //  Generar token seguro a partir del DTO completo
             var token = _tokenService.GenerateToken(user);
 
-            // 🍪 Guardar token en cookie HttpOnly
+            // Guardar token en cookie HttpOnly
             Response.Cookies.Append(
                 "X-Auth",
                 token,
@@ -70,7 +70,7 @@ namespace triage_backend.Controllers
                     Path = "/"
                 });
 
-            // 🔎 Solo devolvemos datos reducidos al frontend
+
             return Ok(new
             {
                 success = true,
