@@ -1,5 +1,0 @@
-[build]
-command = "dotnet publish -c Release -o out"
-
-[start]
-command = "dotnet out/triage_backend.dll"
