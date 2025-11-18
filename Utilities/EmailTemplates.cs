@@ -48,7 +48,6 @@ namespace triage_backend.Utilities
 
       <!-- Encabezado con logo embebido -->
       <div style='background: {headerGradient}; padding: 20px; text-align: center;'>
-        <img src=""cid:logo_triage"" alt='Logo Triage' style='width: 110px; height: auto; margin-bottom: 10px; display:block; margin-left:auto; margin-right:auto;'/>
         <h2 style='color: {titleColor}; margin: 0;'>Registro de Atención en Triage</h2>
       </div>
 
