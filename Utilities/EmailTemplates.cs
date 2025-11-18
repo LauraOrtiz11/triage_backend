@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace triage_backend.Utilities
+﻿namespace triage_backend.Utilities
 {
     public static class EmailTemplates
     {
@@ -46,9 +44,9 @@ namespace triage_backend.Utilities
   <body style='font-family: Arial, sans-serif; background-color: #f7f9fc; color: #333; margin: 0; padding: 0;'>
     <div style='max-width: 600px; margin: 30px auto; background: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;'>
 
-      <!-- Encabezado con logo embebido -->
-      <div style='background: {headerGradient}; padding: 20px; text-align: center;'>
-        <h2 style='color: {titleColor}; margin: 0;'>Registro de Atención en Triage</h2>
+      <!-- Encabezado SIN IMAGEN -->
+      <div style='background: {headerGradient}; padding: 25px; text-align: center;'>
+        <h2 style='color: {titleColor}; margin: 0; font-size: 26px;'>Registro de Atención en Triage</h2>
       </div>
 
       <!-- Cuerpo -->
@@ -67,7 +65,6 @@ namespace triage_backend.Utilities
         <p style='margin-top: 25px; font-size: 15px;'>Por favor permanezca atento(a) al llamado del personal médico.</p>
       </div>
 
-      <!-- Pie -->
       <div style='background-color: #f1f1f1; padding: 10px; text-align: center; font-size: 12px; color: #777;'>
         Este es un mensaje automático, por favor no responda.
       </div>

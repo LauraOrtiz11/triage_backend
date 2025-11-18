@@ -87,15 +87,15 @@ WHERE T.ID_TRIAGE = @TriageId;";
 
                 tx.Commit();
 
-                // 5) ENVIAR CORREO EN SEGUNDO PLANO (NUNCA BLOQUEA)
+                // 5) ENVIAR CORREO EN SEGUNDO PLANO
                 if (!string.IsNullOrWhiteSpace(patientEmail))
                 {
                     string subject = "Actualización de su turno y prioridad";
                     string body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
 
-                    MailMessage msg = EmailUtility.BuildEmail(patientEmail, subject, body);
-                    _emailService.Enqueue(msg);
+                    _emailService.Enqueue(patientEmail, subject, body);
                 }
+
 
                 return true;
             }

@@ -89,16 +89,16 @@ namespace triage_backend.Repositories
             }
 
             // ==========================================
-            // ENVIAR CORREO EN SEGUNDO PLANO (NO BLOQUEA)
+            // ENVIAR CORREO EN SEGUNDO PLANO
             // ==========================================
             if (!string.IsNullOrWhiteSpace(email))
             {
                 string subject = "Registro de turno y prioridad en triage";
                 string body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
 
-                var msg = EmailUtility.BuildEmail(email, subject, body);
-                _emailService.Enqueue(msg);
+                _emailService.Enqueue(email, subject, body);
             }
+
 
             return triageId;
         }
