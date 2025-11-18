@@ -18,7 +18,9 @@
 	  <None Remove="bin\Debug\net8.0\Images\**" />
 	  <None Remove="Images\**" />
 	</ItemGroup>
-
+	<ItemGroup>
+		<EmbeddedResource Include="wwwroot/Images/logo.png" />
+	</ItemGroup>
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="itext.bouncy-castle-adapter" Version="9.3.0" />

@@ -62,14 +62,35 @@ namespace triage_backend.Services
                 var headerTable = new Table(new float[] { 80, 1 }).UseAllAvailableWidth();
                 var logoCell = new Cell().SetBorder(Border.NO_BORDER).SetPaddingRight(10);
 
-                string imagePath = IOPath.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images", "logo.png");
-                if (File.Exists(imagePath))
+                // Cargar logo desde recurso embebido
+                var assembly = typeof(ReportService).Assembly;
+                var resourceName = "triage_backend.wwwroot.Images.logo.png"; // AJUSTAR SI ES Images
+
+                using Stream? stream = assembly.GetManifestResourceStream(resourceName);
+
+                if (stream != null)
                 {
-                    var img = new iText.Layout.Element.Image(iText.IO.Image.ImageDataFactory.Create(imagePath))
-                        .ScaleToFit(60, 60)
-                        .SetAutoScale(true);
+                    byte[] bytes;
+                    using (var ms = new MemoryStream())
+                    {
+                        stream.CopyTo(ms);
+                        bytes = ms.ToArray();
+                    }
+
+                    var img = new iText.Layout.Element.Image(
+                        iText.IO.Image.ImageDataFactory.Create(bytes)
+                    )
+                    .ScaleToFit(60, 60)
+                    .SetAutoScale(true);
+
                     logoCell.Add(img);
                 }
+                else
+                {
+                    Console.WriteLine($"NO SE ENCONTRÓ EL LOGO: {resourceName}");
+                }
+
+
                 headerTable.AddCell(logoCell);
 
                 var titleCell = new Cell().SetBorder(Border.NO_BORDER);
