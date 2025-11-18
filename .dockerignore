@@ -1,0 +1,42 @@
+# Build artifacts
+bin/
+obj/
+
+# .NET user files
+*.user
+*.rsuser
+*.suo
+
+# Logs
+*.log
+
+# Environment & secrets files (local only)
+appsettings.Development.json
+appsettings.Local.json
+appsettings.secrets.json
+*.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE folders
+.vscode/
+.idea/
+.vs/
+
+# Node (solo si tienes alguna carpeta frontend dentro del repo)
+node_modules/
+npm-debug.log
+
+# Publish output
+publish/
+wwwroot/dist/
+wwwroot/build/
+	
+# Docker ignore itself
+docker-compose.override.yml
+Dockerfile.*
+docker-compose.*
+

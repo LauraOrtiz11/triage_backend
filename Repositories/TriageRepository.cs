@@ -1,6 +1,7 @@
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using triage_backend.Dtos;
 using triage_backend.Interfaces;
+using triage_backend.Services;
 using triage_backend.Utilities;
 
 namespace triage_backend.Repositories
@@ -8,25 +9,31 @@ namespace triage_backend.Repositories
     public class TriageRepository : ITriageRepository
     {
         private readonly ContextDB _context;
+        private readonly EmailBackgroundService _emailService;
 
-        public TriageRepository(ContextDB context)
+        public TriageRepository(ContextDB context, EmailBackgroundService emailService)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         }
+
         public async Task<int> InsertTriageAsync(
-    TriageRequestDto request,
-    string suggestedLevel,
-    int ID_Patient,
-    int ID_Doctor,
-    int ID_Nurse,
-    int ID_Priority,
-    int ID_State,
-    int PatientAge)
+            TriageRequestDto request,
+            string suggestedLevel,
+            int ID_Patient,
+            int ID_Doctor,
+            int ID_Nurse,
+            int ID_Priority,
+            int ID_State,
+            int PatientAge)
         {
             using var conn = (SqlConnection)_context.OpenConnection();
-            using var cmd = new SqlCommand("SP_InsertTriageFull", conn);
-            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            using var cmd = new SqlCommand("SP_InsertTriageFull", conn)
+            {
+                CommandType = System.Data.CommandType.StoredProcedure
+            };
 
+            // Parámetros de entrada
             cmd.Parameters.AddWithValue("@ID_PACIENTE", ID_Patient);
             cmd.Parameters.AddWithValue("@ID_MEDICO", ID_Doctor);
             cmd.Parameters.AddWithValue("@ID_ENFERMERO", ID_Nurse);
@@ -39,7 +46,7 @@ namespace triage_backend.Repositories
             cmd.Parameters.AddWithValue("@PRESION_ARTERIAL", (object?)request.VitalSigns.BloodPressure ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@OXIGENACION", request.VitalSigns.OxygenSaturation);
 
-            // Par�metros de salida
+            // Parámetros de salida
             var outId = new SqlParameter("@TRIAGE_ID", System.Data.SqlDbType.Int) { Direction = System.Data.ParameterDirection.Output };
             var outPriority = new SqlParameter("@PRIORIDAD_NOMBRE", System.Data.SqlDbType.NVarChar, 100) { Direction = System.Data.ParameterDirection.Output };
             var outTurn = new SqlParameter("@TURNO", System.Data.SqlDbType.NVarChar, 50) { Direction = System.Data.ParameterDirection.Output };
@@ -48,18 +55,23 @@ namespace triage_backend.Repositories
             cmd.Parameters.Add(outPriority);
             cmd.Parameters.Add(outTurn);
 
+            // Ejecutar SP
             await cmd.ExecuteNonQueryAsync();
 
             int triageId = Convert.ToInt32(outId.Value);
             string priorityName = outPriority.Value?.ToString() ?? "Sin prioridad";
             string turnCode = outTurn.Value?.ToString() ?? "N/A";
 
-            // Enviar correo fuera del SP
+            // ==========================================
+            // EXTRAER EMAIL DEL PACIENTE
+            // ==========================================
             const string mailSql = @"
-SELECT U.CORREO_US, U.NOMBRE_US + ' ' + U.APELLIDO_US AS PACIENTE
-FROM USUARIO U
-JOIN TRIAGE T ON T.ID_PACIENTE = U.ID_USUARIO
-WHERE T.ID_TRIAGE = @Id;";
+                SELECT 
+                    U.CORREO_US, 
+                    U.NOMBRE_US + ' ' + U.APELLIDO_US AS PACIENTE
+                FROM USUARIO U
+                JOIN TRIAGE T ON T.ID_PACIENTE = U.ID_USUARIO
+                WHERE T.ID_TRIAGE = @Id;";
 
             string email = "";
             string patientName = "Paciente";
@@ -67,6 +79,7 @@ WHERE T.ID_TRIAGE = @Id;";
             using (var cmdMail = new SqlCommand(mailSql, conn))
             {
                 cmdMail.Parameters.AddWithValue("@Id", triageId);
+
                 using var reader = await cmdMail.ExecuteReaderAsync();
                 if (await reader.ReadAsync())
                 {
@@ -75,12 +88,30 @@ WHERE T.ID_TRIAGE = @Id;";
                 }
             }
 
+            // ==========================================
+            // ENVIAR CORREO EN SEGUNDO PLANO
+            // ==========================================
+            Console.WriteLine("🔍 Buscando email del paciente para envío...");
+
+            Console.WriteLine($"   ➤ Email obtenido: '{email}'");
+            Console.WriteLine($"   ➤ Nombre del paciente: '{patientName}'");
+
             if (!string.IsNullOrWhiteSpace(email))
             {
-                var subject = "Registro de turno y prioridad en triage";
-                var body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
-                EmailUtility.SendEmail(email, subject, body);
+                Console.WriteLine("✉ Construyendo correo para nuevo triage...");
+
+                string subject = "Registro de turno y prioridad en triage";
+                string body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
+
+                Console.WriteLine("📨 Enviando a la cola...");
+                _emailService.Enqueue(email, subject, body);
             }
+            else
+            {
+                Console.WriteLine("⚠ No se enviará correo: el paciente no tiene correo registrado.");
+            }
+
+
 
             return triageId;
         }

@@ -2,17 +2,22 @@
 using System.Data;
 using triage_backend.Utilities;
 using triage_backend.Dtos;
+using triage_backend.Services;
+using System.Net.Mail;
 
 namespace triage_backend.Repositories
 {
     public class TriageResultRepository
     {
         private readonly ContextDB _context;
+        private readonly EmailBackgroundService _emailService;
 
-        public TriageResultRepository(ContextDB context)
+        public TriageResultRepository(ContextDB context, EmailBackgroundService emailService)
         {
-            _context = context;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         }
+
         // Guarda el resultado, recalcula turno y notifica
         public bool SaveTriageResult(TriageResultDto result)
         {
@@ -23,7 +28,8 @@ namespace triage_backend.Repositories
             {
                 // 1) Insertar nuevo resultado
                 const string insertSql = @"
-INSERT INTO TRIAGE_RESULTADO (ID_Triage, ID_Prioridad, ID_Usuario, Es_Prioridad_Final, Fecha_Registro)
+INSERT INTO TRIAGE_RESULTADO 
+(ID_Triage, ID_Prioridad, ID_Usuario, Es_Prioridad_Final, Fecha_Registro)
 VALUES (@TriageId, @PriorityId, @UserId, @IsFinalPriority, GETDATE());";
 
                 using (var cmd = new SqlCommand(insertSql, conn, tx))
@@ -35,7 +41,7 @@ VALUES (@TriageId, @PriorityId, @UserId, @IsFinalPriority, GETDATE());";
                     cmd.ExecuteNonQuery();
                 }
 
-                // 2) Obtener info necesaria
+                // 2) Obtener info necesaria para turno y correo
                 string color = "X";
                 string priorityName = "Sin prioridad";
                 string patientEmail = "";
@@ -56,13 +62,14 @@ WHERE T.ID_TRIAGE = @TriageId;";
                 {
                     cmd.Parameters.AddWithValue("@PriorityId", result.PriorityId);
                     cmd.Parameters.AddWithValue("@TriageId", result.TriageId);
+
                     using var r = cmd.ExecuteReader();
                     if (r.Read())
                     {
-                        color = (r["Color"]?.ToString() ?? "X");
-                        priorityName = (r["PriorityName"]?.ToString() ?? "Sin prioridad");
-                        patientEmail = (r["Email"]?.ToString() ?? "");
-                        patientName = (r["FullName"]?.ToString() ?? "Paciente");
+                        color = r["Color"]?.ToString() ?? "X";
+                        priorityName = r["PriorityName"]?.ToString() ?? "Sin prioridad";
+                        patientEmail = r["Email"]?.ToString() ?? "";
+                        patientName = r["FullName"]?.ToString() ?? "Paciente";
                     }
                 }
 
@@ -80,28 +87,44 @@ WHERE T.ID_TRIAGE = @TriageId;";
 
                 tx.Commit();
 
-                // 5) Enviar correo fuera de la transacción
+                Console.WriteLine("🔄 Enviando correo por ACTUALIZACIÓN DE TRIAGE...");
+
+                Console.WriteLine($"   ➤ Paciente: {patientName}");
+                Console.WriteLine($"   ➤ Email: {patientEmail}");
+                Console.WriteLine($"   ➤ Nueva prioridad: {priorityName}");
+                Console.WriteLine($"   ➤ Nuevo turno: {turnCode}");
+
                 if (!string.IsNullOrWhiteSpace(patientEmail))
                 {
-                    var subject = "Actualización de su turno y prioridad";
-                    var body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
-                    EmailUtility.SendEmail(patientEmail, subject, body);
+                    Console.WriteLine("✉ Construyendo correo...");
+                    string subject = "Actualización de su turno y prioridad";
+                    string body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
+
+                    Console.WriteLine("📨 Enviando a la cola...");
+                    _emailService.Enqueue(patientEmail, subject, body);
                 }
+                else
+                {
+                    Console.WriteLine("⚠ No se enviará correo: el paciente no tiene correo registrado.");
+                }
+
+
 
                 return true;
             }
             catch
             {
-                try { tx.Rollback(); } catch { /* noop */ }
+                try { tx.Rollback(); } catch { }
                 throw;
             }
         }
 
-        // Calcula turno por orden de llegada dentro de la prioridad (seguro ante concurrencia)
+        // Calcula turno seguro
         private static string GenerateTurnCode(SqlConnection conn, SqlTransaction tx, int triageId, int priorityId, string color)
         {
-            // Obtener FECHA_REGISTRO del triage actual
             DateTime fechaRegistroActual;
+
+            // Obtener fecha
             const string fechaSql = "SELECT FECHA_REGISTRO FROM TRIAGE WHERE ID_TRIAGE = @Id;";
             using (var cmd = new SqlCommand(fechaSql, conn, tx))
             {
@@ -109,7 +132,7 @@ WHERE T.ID_TRIAGE = @TriageId;";
                 fechaRegistroActual = (DateTime)cmd.ExecuteScalar();
             }
 
-            // Contar cuántos triages de la misma prioridad llegaron antes (y desempatar por ID)
+            // Contar orden
             const string ordenSql = @"
 SELECT COUNT(*) + 1
 FROM TRIAGE
@@ -138,88 +161,83 @@ WHERE ID_PRIORIDAD = @Prio
             var results = new List<TriageResultPatientInfoDto>();
 
             const string query = @"
-        SELECT TOP 1
-            (U.Nombre_Us + ' ' + U.Apellido_Us) AS FullName,
-            DATEDIFF(YEAR, U.Fecha_Nac_Us, GETDATE()) AS Age,
-            CASE 
-                WHEN U.Sexo_Us = 1 THEN 'Masculino'
-                WHEN U.Sexo_Us = 0 THEN 'Femenino'
-                ELSE 'No especificado'
-            END AS Gender,
-            T.Sintomas AS Symptoms,
-            CONCAT(
-                'Temp: ', CAST(T.Temperatura AS VARCHAR(10)), '°C, ',
-                'FC: ', CAST(T.Frecuencia_Card AS VARCHAR(10)), ' bpm, ',
-                'PA: ', T.Presion_Arterial, ', ',
-                'FR: ', CAST(T.Frecuencia_Res AS VARCHAR(10)), ' rpm, ',
-                'O₂: ', CAST(T.Oxigenacion AS VARCHAR(10)), '%'
-            ) AS VitalSigns,
-            P.Nombre_Prio AS PriorityName
-        FROM TRIAGE AS T
-            INNER JOIN USUARIO AS U ON U.ID_Usuario = T.ID_Paciente
-            INNER JOIN TRIAGE_RESULTADO AS TR ON TR.ID_Triage = T.ID_Triage
-            INNER JOIN PRIORIDAD AS P ON P.ID_Prioridad = TR.ID_Prioridad
-        WHERE 
-            T.ID_Triage = @TriageId
-        ORDER BY 
-            TR.ID_Triage_Resultado DESC;";
+SELECT TOP 1
+    (U.Nombre_Us + ' ' + U.Apellido_Us) AS FullName,
+    DATEDIFF(YEAR, U.Fecha_Nac_Us, GETDATE()) AS Age,
+    CASE 
+        WHEN U.Sexo_Us = 1 THEN 'Masculino'
+        WHEN U.Sexo_Us = 0 THEN 'Femenino'
+        ELSE 'No especificado'
+    END AS Gender,
+    T.Sintomas AS Symptoms,
+    CONCAT(
+        'Temp: ', CAST(T.Temperatura AS VARCHAR(10)), '°C, ',
+        'FC: ', CAST(T.Frecuencia_Card AS VARCHAR(10)), ' bpm, ',
+        'PA: ', T.Presion_Arterial, ', ',
+        'FR: ', CAST(T.Frecuencia_Res AS VARCHAR(10)), ' rpm, ',
+        'O₂: ', CAST(T.Oxigenacion AS VARCHAR(10)), '%'
+    ) AS VitalSigns,
+    P.Nombre_Prio AS PriorityName
+FROM TRIAGE AS T
+    INNER JOIN USUARIO AS U ON U.ID_Usuario = T.ID_Paciente
+    INNER JOIN TRIAGE_RESULTADO AS TR ON TR.ID_Triage = T.ID_Triage
+    INNER JOIN PRIORIDAD AS P ON P.ID_Prioridad = TR.ID_Prioridad
+WHERE 
+    T.ID_Triage = @TriageId
+ORDER BY 
+    TR.ID_Triage_Resultado DESC;";
 
             using (var connection = _context.OpenConnection())
             using (var command = new SqlCommand(query, (SqlConnection)connection))
             {
                 command.Parameters.AddWithValue("TriageId", triageId);
 
-                using (var reader = await command.ExecuteReaderAsync())
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
                 {
-                    while (await reader.ReadAsync())
+                    results.Add(new TriageResultPatientInfoDto
                     {
-                        results.Add(new TriageResultPatientInfoDto
-                        {
-                            FullName = reader["FullName"].ToString() ?? "",
-                            Age = Convert.ToInt32(reader["Age"]),
-                            Gender = reader["Gender"].ToString() ?? "",
-                            Symptoms = reader["Symptoms"].ToString() ?? "",
-                            VitalSigns = reader["VitalSigns"].ToString() ?? "",
-                            PriorityName = reader["PriorityName"].ToString() ?? ""
-                        });
-                    }
+                        FullName = reader["FullName"].ToString() ?? "",
+                        Age = Convert.ToInt32(reader["Age"]),
+                        Gender = reader["Gender"].ToString() ?? "",
+                        Symptoms = reader["Symptoms"].ToString() ?? "",
+                        VitalSigns = reader["VitalSigns"].ToString() ?? "",
+                        PriorityName = reader["PriorityName"].ToString() ?? ""
+                    });
                 }
             }
 
-            
             _context.CloseConnection();
-
             return results;
         }
-        // Trae el nombre y la descripcion de la prioridad segun el ID del triage
+
+        // Trae nombre y descripción según ID triage
         public async Task<TriagePriorityInfoDto?> GetPriorityInfoByTriageIdAsync(int triageId)
         {
             TriagePriorityInfoDto? result = null;
 
             const string query = @"
-        SELECT 
-            P.Nombre_Prio AS PriorityName,
-            P.Descrip_Prio AS PriorityDescription
-        FROM TRIAGE AS T
-            INNER JOIN PRIORIDAD AS P ON P.ID_Prioridad = T.ID_Prioridad
-        WHERE 
-            T.ID_Triage = @TriageId;";
+SELECT 
+    P.Nombre_Prio AS PriorityName,
+    P.Descrip_Prio AS PriorityDescription
+FROM TRIAGE AS T
+    INNER JOIN PRIORIDAD AS P ON P.ID_Prioridad = T.ID_Prioridad
+WHERE 
+    T.ID_Triage = @TriageId;";
 
             using (var connection = _context.OpenConnection())
             using (var command = new SqlCommand(query, (SqlConnection)connection))
             {
                 command.Parameters.AddWithValue("@TriageId", triageId);
 
-                using (var reader = await command.ExecuteReaderAsync())
+                using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
                 {
-                    if (await reader.ReadAsync())
+                    result = new TriagePriorityInfoDto
                     {
-                        result = new TriagePriorityInfoDto
-                        {
-                            PriorityName = reader["PriorityName"].ToString() ?? "",
-                            PriorityDescription = reader["PriorityDescription"].ToString() ?? ""
-                        };
-                    }
+                        PriorityName = reader["PriorityName"].ToString() ?? "",
+                        PriorityDescription = reader["PriorityDescription"].ToString() ?? ""
+                    };
                 }
             }
 
@@ -227,19 +245,18 @@ WHERE ID_PRIORIDAD = @Prio
             return result;
         }
 
-
-        // === Trae todas las prioridades disponibles ===
+        // Trae todas las prioridades
         public async Task<List<PriorityInfoDto>> GetAllPrioritiesAsync()
         {
             var priorities = new List<PriorityInfoDto>();
 
             const string query = @"
-        SELECT 
-            ID_Prioridad AS PriorityId,
-            Nombre_Prio AS PriorityName,
-            Descrip_Prio AS PriorityDescription
-        FROM PRIORIDAD
-        ORDER BY ID_Prioridad ASC;";
+SELECT 
+    ID_Prioridad AS PriorityId,
+    Nombre_Prio AS PriorityName,
+    Descrip_Prio AS PriorityDescription
+FROM PRIORIDAD
+ORDER BY ID_Prioridad ASC;";
 
             using (var connection = _context.OpenConnection())
             using (var command = new SqlCommand(query, (SqlConnection)connection))
@@ -259,6 +276,5 @@ WHERE ID_PRIORIDAD = @Prio
             _context.CloseConnection();
             return priorities;
         }
-
     }
 }
