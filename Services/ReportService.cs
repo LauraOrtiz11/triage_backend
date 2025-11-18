@@ -64,21 +64,32 @@ namespace triage_backend.Services
 
                 // Cargar logo desde recurso embebido
                 var assembly = typeof(ReportService).Assembly;
-                using Stream? logoStream = assembly.GetManifestResourceStream("triage_backend.wwwroot.images.logo.png");
+                var resourceName = "triage_backend.wwwroot.images.logo.png"; // AJUSTAR SI ES Images
 
-                if (logoStream != null)
+                using Stream? stream = assembly.GetManifestResourceStream(resourceName);
+
+                if (stream != null)
                 {
-                    var imgData = iText.IO.Image.ImageDataFactory.Create(logoStream.ReadAllBytes());
-                    var img = new iText.Layout.Element.Image(imgData)
-                        .ScaleToFit(60, 60)
-                        .SetAutoScale(true);
+                    byte[] bytes;
+                    using (var ms = new MemoryStream())
+                    {
+                        stream.CopyTo(ms);
+                        bytes = ms.ToArray();
+                    }
+
+                    var img = new iText.Layout.Element.Image(
+                        iText.IO.Image.ImageDataFactory.Create(bytes)
+                    )
+                    .ScaleToFit(60, 60)
+                    .SetAutoScale(true);
 
                     logoCell.Add(img);
                 }
                 else
                 {
-                    Console.WriteLine("⚠ No se encontró el recurso embebido: triage_backend.wwwroot.images.logo.png");
+                    Console.WriteLine($"NO SE ENCONTRÓ EL LOGO: {resourceName}");
                 }
+
 
                 headerTable.AddCell(logoCell);
 

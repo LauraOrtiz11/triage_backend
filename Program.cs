@@ -97,7 +97,7 @@ builder.Services.AddScoped<AlertRepository>();
 builder.Services.AddScoped<IAlertService, AlertService>();
 
 builder.Services.AddSingleton<EmailBackgroundService>();
-builder.Services.AddHostedService(p => p.GetRequiredService<EmailBackgroundService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<EmailBackgroundService>());
 
 
 builder.Services.AddScoped<TriageBackend.Repositories.IHistoryRepository, TriageBackend.Repositories.HistoryReportRepository>();
