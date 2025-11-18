@@ -32,31 +32,27 @@ namespace triage_backend.Utilities
             };
             message.To.Add(toEmail);
 
-            AlternateView htmlView = AlternateView.CreateAlternateViewFromString(body, null, MediaTypeNames.Text.Html);
+            AlternateView htmlView = AlternateView.CreateAlternateViewFromString(body, null, MediaTypeNames.Text.Html);           
 
-            // ✅ Ruta segura y sin advertencias
-            string? baseDir = AppContext.BaseDirectory;
-            DirectoryInfo? dir = new DirectoryInfo(baseDir);
-            string? projectRoot = dir?.Parent?.Parent?.Parent?.FullName;
+            // Obtener el logo embebido
+            var assembly = typeof(EmailUtility).Assembly;
+            using Stream? logoStream = assembly.GetManifestResourceStream("triage_backend.wwwroot.Images.logo.png");
 
-            if (string.IsNullOrEmpty(projectRoot))
-                throw new InvalidOperationException("No se pudo determinar la ruta raíz del proyecto.");
-
-            string imagePath = Path.Combine(projectRoot, "wwwroot", "Images", "logo.png");
-
-            if (File.Exists(imagePath))
+            if (logoStream != null)
             {
-                LinkedResource logo = new LinkedResource(imagePath, MediaTypeNames.Image.Jpeg)
+                LinkedResource logo = new LinkedResource(logoStream, MediaTypeNames.Image.Jpeg)
                 {
                     ContentId = "logo_triage",
                     TransferEncoding = TransferEncoding.Base64
                 };
+
                 htmlView.LinkedResources.Add(logo);
             }
             else
             {
-                Console.WriteLine($"⚠ No se encontró el logo en: {imagePath}");
+                Console.WriteLine("⚠ No se pudo cargar el logo embebido.");
             }
+
 
             message.AlternateViews.Add(htmlView);
 
