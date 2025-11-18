@@ -25,7 +25,9 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000",
                 "https://9bnspjw4-3000.use2.devtunnels.ms",
                 "https://localhost:5173",
-                "https://*.devtunnels.ms"
+                "https://*.devtunnels.ms",
+                "https://triage-frontend.vercel.app",
+                "https://triage-frontend-nexs.vercel.app"
             )
             .SetIsOriginAllowed(origin => true) // permite túneles dinámicos
             .AllowAnyHeader()
