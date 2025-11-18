@@ -87,14 +87,27 @@ WHERE T.ID_TRIAGE = @TriageId;";
 
                 tx.Commit();
 
-                // 5) ENVIAR CORREO EN SEGUNDO PLANO
+                Console.WriteLine("🔄 Enviando correo por ACTUALIZACIÓN DE TRIAGE...");
+
+                Console.WriteLine($"   ➤ Paciente: {patientName}");
+                Console.WriteLine($"   ➤ Email: {patientEmail}");
+                Console.WriteLine($"   ➤ Nueva prioridad: {priorityName}");
+                Console.WriteLine($"   ➤ Nuevo turno: {turnCode}");
+
                 if (!string.IsNullOrWhiteSpace(patientEmail))
                 {
+                    Console.WriteLine("✉ Construyendo correo...");
                     string subject = "Actualización de su turno y prioridad";
                     string body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
 
+                    Console.WriteLine("📨 Enviando a la cola...");
                     _emailService.Enqueue(patientEmail, subject, body);
                 }
+                else
+                {
+                    Console.WriteLine("⚠ No se enviará correo: el paciente no tiene correo registrado.");
+                }
+
 
 
                 return true;

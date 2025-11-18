@@ -1,4 +1,4 @@
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using triage_backend.Dtos;
 using triage_backend.Interfaces;
 using triage_backend.Services;
@@ -33,7 +33,7 @@ namespace triage_backend.Repositories
                 CommandType = System.Data.CommandType.StoredProcedure
             };
 
-            // Par�metros de entrada
+            // Parámetros de entrada
             cmd.Parameters.AddWithValue("@ID_PACIENTE", ID_Patient);
             cmd.Parameters.AddWithValue("@ID_MEDICO", ID_Doctor);
             cmd.Parameters.AddWithValue("@ID_ENFERMERO", ID_Nurse);
@@ -46,7 +46,7 @@ namespace triage_backend.Repositories
             cmd.Parameters.AddWithValue("@PRESION_ARTERIAL", (object?)request.VitalSigns.BloodPressure ?? DBNull.Value);
             cmd.Parameters.AddWithValue("@OXIGENACION", request.VitalSigns.OxygenSaturation);
 
-            // Par�metros de salida
+            // Parámetros de salida
             var outId = new SqlParameter("@TRIAGE_ID", System.Data.SqlDbType.Int) { Direction = System.Data.ParameterDirection.Output };
             var outPriority = new SqlParameter("@PRIORIDAD_NOMBRE", System.Data.SqlDbType.NVarChar, 100) { Direction = System.Data.ParameterDirection.Output };
             var outTurn = new SqlParameter("@TURNO", System.Data.SqlDbType.NVarChar, 50) { Direction = System.Data.ParameterDirection.Output };
@@ -91,13 +91,26 @@ namespace triage_backend.Repositories
             // ==========================================
             // ENVIAR CORREO EN SEGUNDO PLANO
             // ==========================================
+            Console.WriteLine("🔍 Buscando email del paciente para envío...");
+
+            Console.WriteLine($"   ➤ Email obtenido: '{email}'");
+            Console.WriteLine($"   ➤ Nombre del paciente: '{patientName}'");
+
             if (!string.IsNullOrWhiteSpace(email))
             {
+                Console.WriteLine("✉ Construyendo correo para nuevo triage...");
+
                 string subject = "Registro de turno y prioridad en triage";
                 string body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
 
+                Console.WriteLine("📨 Enviando a la cola...");
                 _emailService.Enqueue(email, subject, body);
             }
+            else
+            {
+                Console.WriteLine("⚠ No se enviará correo: el paciente no tiene correo registrado.");
+            }
+
 
 
             return triageId;
