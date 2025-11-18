@@ -89,7 +89,7 @@ namespace triage_backend.Repositories
             }
 
             // ==========================================
-            // ENVIAR CORREO EN SEGUNDO PLANO (NUNCA BLOQUEA)
+            // ENVIAR CORREO EN SEGUNDO PLANO (NO BLOQUEA)
             // ==========================================
             if (!string.IsNullOrWhiteSpace(email))
             {
