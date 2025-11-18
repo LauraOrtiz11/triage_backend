@@ -18,23 +18,19 @@ builder.Services.AddCors(options =>
     options.AddPolicy("DevCors", policy =>
     {
         policy
-            .WithOrigins(
-                "https://triage-frontend.vercel.app",
-                "https://triage-frontend-nexs.vercel.app",
-                "http://localhost:3000",
-                "https://localhost:5173",
-                "https://*.devtunnels.ms"
-            )
-            .SetIsOriginAllowed(o =>
-                o.Contains(".vercel.app") ||
-                o.Contains("localhost") ||
-                o.Contains("devtunnels.ms")
-            )
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowCredentials()
+            .SetIsOriginAllowed(origin =>
+                origin.Contains("vercel.app") ||     // Front real y previews
+                origin.Contains("railway.app") ||   // Backend + servicios
+                origin.Contains("localhost")        // Desarrollo local
+            );
     });
 });
+
+
+
 
 // ------------------- Controladores -------------------
 builder.Services.AddControllers();
