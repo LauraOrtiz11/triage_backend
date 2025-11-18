@@ -21,18 +21,26 @@ builder.Services.AddCors(options =>
     options.AddPolicy("DevCors", policy =>
     {
         policy
+            // ⭐ Permitir tu dominio de producción en Vercel
             .WithOrigins(
+                "https://triage-frontend.vercel.app",
+                "https://triage-frontend-nexs.vercel.app/",
                 "http://localhost:3000",
-                "https://9bnspjw4-3000.use2.devtunnels.ms",
                 "https://localhost:5173",
                 "https://*.devtunnels.ms"
             )
-            .SetIsOriginAllowed(origin => true) // permite túneles dinámicos
+            // ⭐ Permitir otros dominios y previews de Vercel
+            .SetIsOriginAllowed(o =>
+                o.Contains(".vercel.app") ||       // previews
+                o.Contains("localhost") ||
+                o.Contains("devtunnels.ms")
+            )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
     });
 });
+
 // ------------------- Controladores -------------------
 builder.Services.AddControllers();
 
