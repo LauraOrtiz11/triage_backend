@@ -96,6 +96,10 @@ builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<AlertRepository>();
 builder.Services.AddScoped<IAlertService, AlertService>();
 
+builder.Services.AddSingleton<EmailBackgroundService>();
+builder.Services.AddHostedService(p => p.GetRequiredService<EmailBackgroundService>());
+
+
 builder.Services.AddScoped<TriageBackend.Repositories.IHistoryRepository, TriageBackend.Repositories.HistoryReportRepository>();
 builder.Services.AddScoped<TriageBackend.Services.IHistoryReportService, TriageBackend.Services.HistoryReportService>();
 builder.Services.AddScoped<TriageBackend.Utilities.IPdfGeneratorHistoryReport, TriageBackend.Utilities.PdfGeneratorHistoryReport>();

@@ -1,6 +1,7 @@
 using Microsoft.Data.SqlClient;
 using triage_backend.Dtos;
 using triage_backend.Interfaces;
+using triage_backend.Services;
 using triage_backend.Utilities;
 
 namespace triage_backend.Repositories
@@ -8,25 +9,31 @@ namespace triage_backend.Repositories
     public class TriageRepository : ITriageRepository
     {
         private readonly ContextDB _context;
+        private readonly EmailBackgroundService _emailService;
 
-        public TriageRepository(ContextDB context)
+        public TriageRepository(ContextDB context, EmailBackgroundService emailService)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
+            _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         }
+
         public async Task<int> InsertTriageAsync(
-    TriageRequestDto request,
-    string suggestedLevel,
-    int ID_Patient,
-    int ID_Doctor,
-    int ID_Nurse,
-    int ID_Priority,
-    int ID_State,
-    int PatientAge)
+            TriageRequestDto request,
+            string suggestedLevel,
+            int ID_Patient,
+            int ID_Doctor,
+            int ID_Nurse,
+            int ID_Priority,
+            int ID_State,
+            int PatientAge)
         {
             using var conn = (SqlConnection)_context.OpenConnection();
-            using var cmd = new SqlCommand("SP_InsertTriageFull", conn);
-            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            using var cmd = new SqlCommand("SP_InsertTriageFull", conn)
+            {
+                CommandType = System.Data.CommandType.StoredProcedure
+            };
 
+            // Parámetros de entrada
             cmd.Parameters.AddWithValue("@ID_PACIENTE", ID_Patient);
             cmd.Parameters.AddWithValue("@ID_MEDICO", ID_Doctor);
             cmd.Parameters.AddWithValue("@ID_ENFERMERO", ID_Nurse);
@@ -48,18 +55,23 @@ namespace triage_backend.Repositories
             cmd.Parameters.Add(outPriority);
             cmd.Parameters.Add(outTurn);
 
+            // Ejecutar SP
             await cmd.ExecuteNonQueryAsync();
 
             int triageId = Convert.ToInt32(outId.Value);
             string priorityName = outPriority.Value?.ToString() ?? "Sin prioridad";
             string turnCode = outTurn.Value?.ToString() ?? "N/A";
 
-            // Enviar correo fuera del SP
+            // ==========================================
+            // EXTRAER EMAIL DEL PACIENTE
+            // ==========================================
             const string mailSql = @"
-SELECT U.CORREO_US, U.NOMBRE_US + ' ' + U.APELLIDO_US AS PACIENTE
-FROM USUARIO U
-JOIN TRIAGE T ON T.ID_PACIENTE = U.ID_USUARIO
-WHERE T.ID_TRIAGE = @Id;";
+                SELECT 
+                    U.CORREO_US, 
+                    U.NOMBRE_US + ' ' + U.APELLIDO_US AS PACIENTE
+                FROM USUARIO U
+                JOIN TRIAGE T ON T.ID_PACIENTE = U.ID_USUARIO
+                WHERE T.ID_TRIAGE = @Id;";
 
             string email = "";
             string patientName = "Paciente";
@@ -67,6 +79,7 @@ WHERE T.ID_TRIAGE = @Id;";
             using (var cmdMail = new SqlCommand(mailSql, conn))
             {
                 cmdMail.Parameters.AddWithValue("@Id", triageId);
+
                 using var reader = await cmdMail.ExecuteReaderAsync();
                 if (await reader.ReadAsync())
                 {
@@ -75,11 +88,16 @@ WHERE T.ID_TRIAGE = @Id;";
                 }
             }
 
+            // ==========================================
+            // ENVIAR CORREO EN SEGUNDO PLANO (NUNCA BLOQUEA)
+            // ==========================================
             if (!string.IsNullOrWhiteSpace(email))
             {
-                var subject = "Registro de turno y prioridad en triage";
-                var body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
-                EmailUtility.SendEmail(email, subject, body);
+                string subject = "Registro de turno y prioridad en triage";
+                string body = EmailTemplates.BuildPriorityUpdateBody(patientName, priorityName, turnCode);
+
+                var msg = EmailUtility.BuildEmail(email, subject, body);
+                _emailService.Enqueue(msg);
             }
 
             return triageId;
