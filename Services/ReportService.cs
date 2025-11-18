@@ -64,7 +64,7 @@ namespace triage_backend.Services
 
                 // Cargar logo desde recurso embebido
                 var assembly = typeof(ReportService).Assembly;
-                var resourceName = "triage_backend.wwwroot.images.logo.png"; // AJUSTAR SI ES Images
+                var resourceName = "triage_backend.wwwroot.Images.logo.png"; // AJUSTAR SI ES Images
 
                 using Stream? stream = assembly.GetManifestResourceStream(resourceName);
 
